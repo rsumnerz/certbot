@@ -4,11 +4,18 @@ from setuptools import setup
 from setuptools import find_packages
 
 
-version = '0.7.0.dev0'
+version = '0.22.0.dev0'
 
+# Please update tox.ini when modifying dependency version requirements
 install_requires = [
+    'acme=={0}'.format(version),
+    'certbot=={0}'.format(version),
+    'cloudflare>=1.5.1',
     'mock',
-    'setuptools',  # pkg_resources
+    # For pkg_resources. >=1.0 so pip resolves it to a version cryptography
+    # will tolerate; see #2599:
+    'setuptools>=1.0',
+    'zope.interface',
 ]
 
 docs_extras = [
@@ -17,25 +24,24 @@ docs_extras = [
 ]
 
 setup(
-    name='letshelp-certbot',
+    name='certbot-dns-cloudflare',
     version=version,
-    description="Let's help Certbot client",
-    url='https://github.com/letsencrypt/letsencrypt',
+    description="Cloudflare DNS Authenticator plugin for Certbot",
+    url='https://github.com/certbot/certbot',
     author="Certbot Project",
     author_email='client-dev@letsencrypt.org',
     license='Apache License 2.0',
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     classifiers=[
         'Development Status :: 3 - Alpha',
+        'Environment :: Plugins',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
@@ -54,9 +60,9 @@ setup(
         'docs': docs_extras,
     },
     entry_points={
-        'console_scripts': [
-            'letshelp-certbot-apache = letshelp_certbot.apache:main',
+        'certbot.plugins': [
+            'dns-cloudflare = certbot_dns_cloudflare.dns_cloudflare:Authenticator',
         ],
     },
-    test_suite='letshelp_certbot',
+    test_suite='certbot_dns_cloudflare',
 )
