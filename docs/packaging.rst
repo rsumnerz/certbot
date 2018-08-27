@@ -67,6 +67,7 @@ From our official releases:
 - https://www.archlinux.org/packages/community/any/certbot-dns-google
 - https://www.archlinux.org/packages/community/any/certbot-dns-luadns
 - https://www.archlinux.org/packages/community/any/certbot-dns-nsone
+- https://www.archlinux.org/packages/community/any/certbot-dns-ovh
 - https://www.archlinux.org/packages/community/any/certbot-dns-rfc2136
 - https://www.archlinux.org/packages/community/any/certbot-dns-route53
 
