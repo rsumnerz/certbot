@@ -1,7 +1,6 @@
 """Module contains classes used by the Apache Configurator."""
 import re
 
-from acme.magic_typing import Set # pylint: disable=unused-import, no-name-in-module
 from certbot.plugins import common
 
 
@@ -141,7 +140,7 @@ class VirtualHost(object):  # pylint: disable=too-few-public-methods
 
     def get_names(self):
         """Return a set of all names."""
-        all_names = set()  # type: Set[str]
+        all_names = set()
         all_names.update(self.aliases)
         # Strip out any scheme:// and <port> field from servername
         if self.name is not None:
@@ -252,7 +251,7 @@ class VirtualHost(object):  # pylint: disable=too-few-public-methods
 
         # already_found acts to keep everything very conservative.
         # Don't allow multiple ip:ports in same set.
-        already_found = set()  # type: Set[str]
+        already_found = set()
 
         for addr in vhost.addrs:
             for local_addr in self.addrs:

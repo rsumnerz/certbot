@@ -5,9 +5,7 @@ import zope.component
 import zope.interface
 
 from acme import challenges
-from acme.magic_typing import Dict  # pylint: disable=unused-import, no-name-in-module
 
-from certbot import achallenges  # pylint: disable=unused-import
 from certbot import interfaces
 from certbot import errors
 from certbot import hooks
@@ -100,8 +98,7 @@ when it receives a TLS ClientHello with the SNI extension set to
         super(Authenticator, self).__init__(*args, **kwargs)
         self.reverter = reverter.Reverter(self.config)
         self.reverter.recovery_routine()
-        self.env = dict() \
-        # type: Dict[achallenges.KeyAuthorizationAnnotatedChallenge, Dict[str, str]]
+        self.env = dict()
         self.tls_sni_01 = None
 
     @classmethod
@@ -192,7 +189,7 @@ when it receives a TLS ClientHello with the SNI extension set to
         os.environ.update(env)
         _, out = hooks.execute(self.conf('auth-hook'))
         env['CERTBOT_AUTH_OUTPUT'] = out.strip()
-        self.env[achall] = env
+        self.env[achall.domain] = env
 
     def _perform_achall_manually(self, achall):
         validation = achall.validation(achall.account_key)
@@ -218,7 +215,7 @@ when it receives a TLS ClientHello with the SNI extension set to
     def cleanup(self, achalls):  # pylint: disable=missing-docstring
         if self.conf('cleanup-hook'):
             for achall in achalls:
-                env = self.env.pop(achall)
+                env = self.env.pop(achall.domain)
                 if 'CERTBOT_TOKEN' not in env:
                     os.environ.pop('CERTBOT_TOKEN', None)
                 os.environ.update(env)

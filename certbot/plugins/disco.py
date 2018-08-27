@@ -10,7 +10,6 @@ from collections import OrderedDict
 import zope.interface
 import zope.interface.verify
 
-from acme.magic_typing import Dict  # pylint: disable=unused-import, no-name-in-module
 from certbot import constants
 from certbot import errors
 from certbot import interfaces
@@ -30,17 +29,12 @@ class PluginEntryPoint(object):
         "certbot-dns-digitalocean",
         "certbot-dns-dnsimple",
         "certbot-dns-dnsmadeeasy",
-        "certbot-dns-gehirn",
         "certbot-dns-google",
-        "certbot-dns-linode",
         "certbot-dns-luadns",
         "certbot-dns-nsone",
-        "certbot-dns-ovh",
         "certbot-dns-rfc2136",
         "certbot-dns-route53",
-        "certbot-dns-sakuracloud",
         "certbot-nginx",
-        "certbot-postfix",
     ]
     """Distributions for which prefix will be omitted."""
 
@@ -195,8 +189,7 @@ class PluginsRegistry(collections.Mapping):
     @classmethod
     def find_all(cls):
         """Find plugins using setuptools entry points."""
-        plugins = {}  # type: Dict[str, PluginEntryPoint]
-        # pylint: disable=not-callable
+        plugins = {}
         entry_points = itertools.chain(
             pkg_resources.iter_entry_points(
                 constants.SETUPTOOLS_PLUGINS_ENTRY_POINT),

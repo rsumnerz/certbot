@@ -1,12 +1,14 @@
-from setuptools import setup
+import sys
+
+from distutils.core import setup
 from setuptools import find_packages
 
-version = '0.27.0.dev0'
+version = '0.22.0.dev0'
 
 # Remember to update local-oldest-requirements.txt when changing the minimum
 # acme/certbot version.
 install_requires = [
-    'acme>=0.25.0',
+    'acme>=0.21.1',
     'certbot>=0.21.1',
     'boto3',
     'mock',
@@ -36,7 +38,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Security',
         'Topic :: System :: Installation/Setup',

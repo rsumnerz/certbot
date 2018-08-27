@@ -2,18 +2,12 @@
 import argparse
 import socket
 import unittest
-# https://github.com/python/typeshed/blob/master/stdlib/2and3/socket.pyi
-from socket import errno as socket_errors  # type: ignore
 
 import josepy as jose
 import mock
 import six
 
-import OpenSSL.crypto  # pylint: disable=unused-import
-
 from acme import challenges
-from acme import standalone as acme_standalone  # pylint: disable=unused-import
-from acme.magic_typing import Dict, Tuple, Set  # pylint: disable=unused-import, no-name-in-module
 
 from certbot import achallenges
 from certbot import errors
@@ -27,9 +21,8 @@ class ServerManagerTest(unittest.TestCase):
 
     def setUp(self):
         from certbot.plugins.standalone import ServerManager
-        self.certs = {}  # type: Dict[bytes, Tuple[OpenSSL.crypto.PKey, OpenSSL.crypto.X509]]
-        self.http_01_resources = {} \
-        # type: Set[acme_standalone.HTTP01RequestHandler.HTTP01Resource]
+        self.certs = {}
+        self.http_01_resources = {}
         self.mgr = ServerManager(self.certs, self.http_01_resources)
 
     def test_init(self):
@@ -166,7 +159,7 @@ class AuthenticatorTest(unittest.TestCase):
     @test_util.patch_get_utility()
     def test_perform_eaddrinuse_retry(self, mock_get_utility):
         mock_utility = mock_get_utility()
-        errno = socket_errors.EADDRINUSE
+        errno = socket.errno.EADDRINUSE
         error = errors.StandaloneBindError(mock.MagicMock(errno=errno), -1)
         self.auth.servers.run.side_effect = [error] + 2 * [mock.MagicMock()]
         mock_yesno = mock_utility.yesno
@@ -181,7 +174,7 @@ class AuthenticatorTest(unittest.TestCase):
         mock_yesno = mock_utility.yesno
         mock_yesno.return_value = False
 
-        errno = socket_errors.EADDRINUSE
+        errno = socket.errno.EADDRINUSE
         self.assertRaises(errors.PluginError, self._fail_perform, errno)
         self._assert_correct_yesno_call(mock_yesno)
 
@@ -191,11 +184,11 @@ class AuthenticatorTest(unittest.TestCase):
         self.assertFalse(yesno_kwargs.get("default", True))
 
     def test_perform_eacces(self):
-        errno = socket_errors.EACCES
+        errno = socket.errno.EACCES
         self.assertRaises(errors.PluginError, self._fail_perform, errno)
 
     def test_perform_unexpected_socket_error(self):
-        errno = socket_errors.ENOTCONN
+        errno = socket.errno.ENOTCONN
         self.assertRaises(
             errors.StandaloneBindError, self._fail_perform, errno)
 

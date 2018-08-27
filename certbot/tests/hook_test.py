@@ -5,7 +5,6 @@ import unittest
 
 import mock
 
-from acme.magic_typing import List  # pylint: disable=unused-import, no-name-in-module
 from certbot import errors
 from certbot.tests import util
 
@@ -107,8 +106,8 @@ class PreHookTest(HookTest):
         super(PreHookTest, self).tearDown()
 
     def _reset_pre_hook_already(self):
-        from certbot.hooks import executed_pre_hooks
-        executed_pre_hooks.clear()
+        from certbot.hooks import pre_hook
+        pre_hook.already.clear()
 
     def test_certonly(self):
         self.config.verb = "certonly"
@@ -185,8 +184,8 @@ class PostHookTest(HookTest):
         super(PostHookTest, self).tearDown()
 
     def _reset_post_hook_eventually(self):
-        from certbot.hooks import post_hooks
-        del post_hooks[:]
+        from certbot.hooks import post_hook
+        post_hook.eventually = []
 
     def test_certonly_and_run_with_hook(self):
         for verb in ("certonly", "run",):
@@ -239,8 +238,8 @@ class PostHookTest(HookTest):
             self.assertEqual(self._get_eventually(), expected)
 
     def _get_eventually(self):
-        from certbot.hooks import post_hooks
-        return post_hooks
+        from certbot.hooks import post_hook
+        return post_hook.eventually
 
 
 class RunSavedPostHooksTest(HookTest):
@@ -249,23 +248,23 @@ class RunSavedPostHooksTest(HookTest):
     @classmethod
     def _call(cls, *args, **kwargs):
         from certbot.hooks import run_saved_post_hooks
-        return run_saved_post_hooks()
+        return run_saved_post_hooks(*args, **kwargs)
 
     def _call_with_mock_execute_and_eventually(self, *args, **kwargs):
         """Call run_saved_post_hooks but mock out execute and eventually
 
-        certbot.hooks.post_hooks is replaced with
+        certbot.hooks.post_hook.eventually is replaced with
         self.eventually. The mock execute object is returned rather than
         the return value of run_saved_post_hooks.
 
         """
-        eventually_path = "certbot.hooks.post_hooks"
+        eventually_path = "certbot.hooks.post_hook.eventually"
         with mock.patch(eventually_path, new=self.eventually):
             return self._call_with_mock_execute(*args, **kwargs)
 
     def setUp(self):
         super(RunSavedPostHooksTest, self).setUp()
-        self.eventually = []  # type: List[str]
+        self.eventually = []
 
     def test_empty(self):
         self.assertFalse(self._call_with_mock_execute_and_eventually().called)

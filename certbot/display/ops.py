@@ -86,30 +86,12 @@ def choose_account(accounts):
     else:
         return None
 
-def choose_values(values, question=None):
-    """Display screen to let user pick one or multiple values from the provided
-    list.
 
-    :param list values: Values to select from
-
-    :returns: List of selected values
-    :rtype: list
-    """
-    code, items = z_util(interfaces.IDisplay).checklist(
-        question, tags=values, force_interactive=True)
-    if code == display_util.OK and items:
-        return items
-    else:
-        return []
-
-def choose_names(installer, question=None):
+def choose_names(installer):
     """Display screen to select domains to validate.
 
     :param installer: An installer object
     :type installer: :class:`certbot.interfaces.IInstaller`
-
-    :param `str` question: Overriding dialog question to ask the user if asked
-        to choose from domain names.
 
     :returns: List of selected names
     :rtype: `list` of `str`
@@ -126,7 +108,7 @@ def choose_names(installer, question=None):
         return _choose_names_manually(
             "No names were found in your configuration files. ")
 
-    code, names = _filter_names(names, question)
+    code, names = _filter_names(names)
     if code == display_util.OK and names:
         return names
     else:
@@ -160,7 +142,7 @@ def _sort_names(FQDNs):
     return sorted(FQDNs, key=lambda fqdn: fqdn.split('.')[::-1][1:])
 
 
-def _filter_names(names, override_question=None):
+def _filter_names(names):
     """Determine which names the user would like to select from a list.
 
     :param list names: domain names
@@ -173,12 +155,10 @@ def _filter_names(names, override_question=None):
     """
     #Sort by domain first, and then by subdomain
     sorted_names = _sort_names(names)
-    if override_question:
-        question = override_question
-    else:
-        question = "Which names would you like to activate HTTPS for?"
+
     code, names = z_util(interfaces.IDisplay).checklist(
-        question, tags=sorted_names, cli_flag="--domains", force_interactive=True)
+        "Which names would you like to activate HTTPS for?",
+        tags=sorted_names, cli_flag="--domains", force_interactive=True)
     return code, [str(s) for s in names]
 
 

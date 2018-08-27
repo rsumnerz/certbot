@@ -4,9 +4,7 @@ import os
 import unittest
 
 import mock
-from googleapiclient import discovery
 from googleapiclient.errors import Error
-from googleapiclient.http import HttpMock
 from httplib2 import ServerNotFoundError
 
 from certbot import errors
@@ -70,13 +68,7 @@ class GoogleClientTest(unittest.TestCase):
     def _setUp_client_with_mock(self, zone_request_side_effect):
         from certbot_dns_google.dns_google import _GoogleClient
 
-        pwd = os.path.dirname(__file__)
-        rel_path = 'testdata/discovery.json'
-        discovery_file = os.path.join(pwd, rel_path)
-        http_mock = HttpMock(discovery_file, {'status': '200'})
-        dns_api = discovery.build('dns', 'v1', http=http_mock)
-
-        client = _GoogleClient(ACCOUNT_JSON_PATH, dns_api)
+        client = _GoogleClient(ACCOUNT_JSON_PATH)
 
         # Setup
         mock_mz = mock.MagicMock()
@@ -278,20 +270,7 @@ class GoogleClientTest(unittest.TestCase):
         found = client.get_existing_txt_rrset(self.zone, "_acme-challenge.example.org")
         self.assertEquals(found, ["\"example-txt-contents\""])
         not_found = client.get_existing_txt_rrset(self.zone, "nonexistent.tld")
-        self.assertEquals(not_found, None)
-
-    @mock.patch('oauth2client.service_account.ServiceAccountCredentials.from_json_keyfile_name')
-    @mock.patch('certbot_dns_google.dns_google.open',
-                mock.mock_open(read_data='{"project_id": "' + PROJECT_ID + '"}'), create=True)
-    def test_get_existing_fallback(self, unused_credential_mock):
-        client, unused_changes = self._setUp_client_with_mock(
-            [{'managedZones': [{'id': self.zone}]}])
-        # pylint: disable=no-member
-        mock_execute = client.dns.resourceRecordSets.return_value.list.return_value.execute
-        mock_execute.side_effect = API_ERROR
-
-        rrset = client.get_existing_txt_rrset(self.zone, "_acme-challenge.example.org")
-        self.assertFalse(rrset)
+        self.assertEquals(not_found, [])
 
     def test_get_project_id(self):
         from certbot_dns_google.dns_google import _GoogleClient

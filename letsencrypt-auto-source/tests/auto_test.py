@@ -18,7 +18,6 @@ from threading import Thread
 from unittest import TestCase
 
 from pytest import mark
-from six.moves import xrange  # pylint: disable=redefined-builtin
 
 
 @mark.skip

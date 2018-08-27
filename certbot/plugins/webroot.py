@@ -10,12 +10,8 @@ import six
 import zope.component
 import zope.interface
 
-from acme import challenges  # pylint: disable=unused-import
-# pylint: disable=unused-import, no-name-in-module
-from acme.magic_typing import Dict, Set, DefaultDict, List
-# pylint: enable=unused-import, no-name-in-module
+from acme import challenges
 
-from certbot import achallenges  # pylint: disable=unused-import
 from certbot import cli
 from certbot import errors
 from certbot import interfaces
@@ -68,11 +64,10 @@ to serve all files under specified web root ({0})."""
 
     def __init__(self, *args, **kwargs):
         super(Authenticator, self).__init__(*args, **kwargs)
-        self.full_roots = {}  # type: Dict[str, str]
-        self.performed = collections.defaultdict(set) \
-        # type: DefaultDict[str, Set[achallenges.KeyAuthorizationAnnotatedChallenge]]
+        self.full_roots = {}
+        self.performed = collections.defaultdict(set)
         # stack of dirs successfully created by this authenticator
-        self._created_dirs = []  # type: List[str]
+        self._created_dirs = []
 
     def prepare(self):  # pylint: disable=missing-docstring
         pass
@@ -161,6 +156,7 @@ to serve all files under specified web root ({0})."""
                 " --help webroot for examples.")
         for name, path in path_map.items():
             self.full_roots[name] = os.path.join(path, challenges.HTTP01.URI_ROOT_PATH)
+
             logger.debug("Creating root challenges validation dir at %s",
                          self.full_roots[name])
 
@@ -211,6 +207,7 @@ to serve all files under specified web root ({0})."""
             os.umask(old_umask)
 
         self.performed[root_path].add(achall)
+
         return response
 
     def cleanup(self, achalls):  # pylint: disable=missing-docstring
@@ -222,7 +219,7 @@ to serve all files under specified web root ({0})."""
                 os.remove(validation_path)
                 self.performed[root_path].remove(achall)
 
-        not_removed = []  # type: List[str]
+        not_removed = []
         while len(self._created_dirs) > 0:
             path = self._created_dirs.pop()
             try:

@@ -87,10 +87,6 @@ class NotSupportedError(PluginError):
     """Certbot Plugin function not supported error."""
 
 
-class PluginStorageError(PluginError):
-    """Certbot Plugin Storage error."""
-
-
 class StandaloneBindError(Error):
     """Standalone plugin bind error."""
 

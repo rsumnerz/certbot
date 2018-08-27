@@ -47,7 +47,7 @@ class NginxConfiguratorTest(util.NginxTest):
 
     def test_prepare(self):
         self.assertEqual((1, 6, 2), self.config.version)
-        self.assertEqual(11, len(self.config.parser.parsed))
+        self.assertEqual(10, len(self.config.parser.parsed))
 
     @mock.patch("certbot_nginx.configurator.util.exe_exists")
     @mock.patch("certbot_nginx.configurator.subprocess.Popen")
@@ -91,11 +91,10 @@ class NginxConfiguratorTest(util.NginxTest):
         self.assertEqual(names, set(
             ["155.225.50.69.nephoscale.net", "www.example.org", "another.alias",
              "migration.com", "summer.com", "geese.com", "sslon.com",
-             "globalssl.com", "globalsslsetssl.com", "ipv6.com", "ipv6ssl.com",
-             "headers.com"]))
+             "globalssl.com", "globalsslsetssl.com", "ipv6.com", "ipv6ssl.com"]))
 
     def test_supported_enhancements(self):
-        self.assertEqual(['redirect', 'ensure-http-header', 'staple-ocsp'],
+        self.assertEqual(['redirect', 'staple-ocsp'],
                          self.config.supported_enhancements())
 
     def test_enhance(self):
@@ -114,7 +113,8 @@ class NginxConfiguratorTest(util.NginxTest):
                                      None, [0])
         self.config.parser.add_server_directives(
             mock_vhost,
-            [['listen', ' ', '5001', ' ', 'ssl']])
+            [['listen', ' ', '5001', ' ', 'ssl']],
+            replace=False)
         self.config.save()
 
         # pylint: disable=protected-access
@@ -206,9 +206,9 @@ class NginxConfiguratorTest(util.NginxTest):
             "example/chain.pem",
             None)
 
-    @mock.patch('certbot_nginx.parser.NginxParser.update_or_add_server_directives')
-    def test_deploy_cert_raise_on_add_error(self, mock_update_or_add_server_directives):
-        mock_update_or_add_server_directives.side_effect = errors.MisconfigurationError()
+    @mock.patch('certbot_nginx.parser.NginxParser.add_server_directives')
+    def test_deploy_cert_raise_on_add_error(self, mock_add_server_directives):
+        mock_add_server_directives.side_effect = errors.MisconfigurationError()
         self.assertRaises(
             errors.PluginError,
             self.config.deploy_cert,
@@ -510,62 +510,6 @@ class NginxConfiguratorTest(util.NginxTest):
                ['return', '404'], ['#', ' managed by Certbot'], [], [], []]]],
             generated_conf)
 
-    def test_split_for_headers(self):
-        example_conf = self.config.parser.abs_path('sites-enabled/example.com')
-        self.config.deploy_cert(
-            "example.org",
-            "example/cert.pem",
-            "example/key.pem",
-            "example/chain.pem",
-            "example/fullchain.pem")
-        self.config.enhance("www.example.com", "ensure-http-header", "Strict-Transport-Security")
-        generated_conf = self.config.parser.parsed[example_conf]
-        self.assertEqual(
-            [[['server'], [
-               ['server_name', '.example.com'],
-               ['server_name', 'example.*'], [],
-               ['listen', '5001', 'ssl'], ['#', ' managed by Certbot'],
-               ['ssl_certificate', 'example/fullchain.pem'], ['#', ' managed by Certbot'],
-               ['ssl_certificate_key', 'example/key.pem'], ['#', ' managed by Certbot'],
-               ['include', self.config.mod_ssl_conf], ['#', ' managed by Certbot'],
-               ['ssl_dhparam', self.config.ssl_dhparams], ['#', ' managed by Certbot'],
-               [], [],
-               ['add_header', 'Strict-Transport-Security', '"max-age=31536000"', 'always'],
-               ['#', ' managed by Certbot'],
-               [], []]],
-             [['server'], [
-               ['listen', '69.50.225.155:9000'],
-               ['listen', '127.0.0.1'],
-               ['server_name', '.example.com'],
-               ['server_name', 'example.*'],
-               [], [], []]]],
-            generated_conf)
-
-    def test_http_header_hsts(self):
-        example_conf = self.config.parser.abs_path('sites-enabled/example.com')
-        self.config.enhance("www.example.com", "ensure-http-header",
-                            "Strict-Transport-Security")
-        expected = ['add_header', 'Strict-Transport-Security', '"max-age=31536000"', 'always']
-        generated_conf = self.config.parser.parsed[example_conf]
-        self.assertTrue(util.contains_at_depth(generated_conf, expected, 2))
-
-    def test_multiple_headers_hsts(self):
-        headers_conf = self.config.parser.abs_path('sites-enabled/headers.com')
-        self.config.enhance("headers.com", "ensure-http-header",
-                            "Strict-Transport-Security")
-        expected = ['add_header', 'Strict-Transport-Security', '"max-age=31536000"', 'always']
-        generated_conf = self.config.parser.parsed[headers_conf]
-        self.assertTrue(util.contains_at_depth(generated_conf, expected, 2))
-
-    def test_http_header_hsts_twice(self):
-        self.config.enhance("www.example.com", "ensure-http-header",
-                            "Strict-Transport-Security")
-        self.assertRaises(
-            errors.PluginEnhancementAlreadyPresent,
-            self.config.enhance, "www.example.com",
-            "ensure-http-header", "Strict-Transport-Security")
-
-
     @mock.patch('certbot_nginx.obj.VirtualHost.contains_list')
     def test_certbot_redirect_exists(self, mock_contains_list):
         # Test that we add no redirect statement if there is already a
@@ -648,7 +592,7 @@ class NginxConfiguratorTest(util.NginxTest):
         self.assertEqual([[['server'],
                            [['listen', 'myhost', 'default_server'],
                             ['listen', 'otherhost', 'default_server'],
-                            ['server_name', '"www.example.org"'],
+                            ['server_name', 'www.example.org'],
                             [['location', '/'],
                              [['root', 'html'],
                               ['index', 'index.html', 'index.htm']]]]],
@@ -729,13 +673,6 @@ class NginxConfiguratorTest(util.NginxTest):
         self.config.version = (1, 3, 1)
         self.assertRaises(errors.MisconfigurationError, self.config.deploy_cert,
             "www.nomatch.com", "example/cert.pem", "example/key.pem",
-            "example/chain.pem", "example/fullchain.pem")
-
-    def test_deploy_no_match_multiple_defaults_ok(self):
-        foo_conf = self.config.parser.abs_path('foo.conf')
-        self.config.parser.parsed[foo_conf][2][1][0][1][0][1] = '*:5001'
-        self.config.version = (1, 3, 1)
-        self.config.deploy_cert("www.nomatch.com", "example/cert.pem", "example/key.pem",
             "example/chain.pem", "example/fullchain.pem")
 
     def test_deploy_no_match_add_redirect(self):
@@ -868,7 +805,7 @@ class NginxConfiguratorTest(util.NginxTest):
                                                 prefer_ssl=False,
                                                 no_ssl_filter_port='80')
             # Check that the dialog was called with only port 80 vhosts
-            self.assertEqual(len(mock_select_vhs.call_args[0][0]), 5)
+            self.assertEqual(len(mock_select_vhs.call_args[0][0]), 4)
 
 
 class InstallSslOptionsConfTest(util.NginxTest):
@@ -947,31 +884,6 @@ class InstallSslOptionsConfTest(util.NginxTest):
         self.assertTrue(self._current_ssl_options_hash() in ALL_SSL_OPTIONS_HASHES,
             "Constants.ALL_SSL_OPTIONS_HASHES must be appended"
             " with the sha256 hash of self.config.mod_ssl_conf when it is updated.")
-
-
-class DetermineDefaultServerRootTest(certbot_test_util.ConfigTestCase):
-    """Tests for certbot_nginx.configurator._determine_default_server_root."""
-
-    def _call(self):
-        from certbot_nginx.configurator import _determine_default_server_root
-        return _determine_default_server_root()
-
-    @mock.patch.dict(os.environ, {"CERTBOT_DOCS": "1"})
-    def test_docs_value(self):
-        self._test(expect_both_values=True)
-
-    @mock.patch.dict(os.environ, {})
-    def test_real_values(self):
-        self._test(expect_both_values=False)
-
-    def _test(self, expect_both_values):
-        server_root = self._call()
-
-        if expect_both_values:
-            self.assertIn("/usr/local/etc/nginx", server_root)
-            self.assertIn("/etc/nginx", server_root)
-        else:
-            self.assertTrue(server_root == "/etc/nginx" or server_root == "/usr/local/etc/nginx")
 
 
 if __name__ == "__main__":

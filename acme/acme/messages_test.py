@@ -6,7 +6,6 @@ import mock
 
 from acme import challenges
 from acme import test_util
-from acme.magic_typing import Dict # pylint: disable=unused-import, no-name-in-module
 
 
 CERT = test_util.load_comparable_cert('cert.der')
@@ -86,7 +85,7 @@ class ConstantTest(unittest.TestCase):
         from acme.messages import _Constant
 
         class MockConstant(_Constant):  # pylint: disable=missing-docstring
-            POSSIBLE_NAMES = {} # type: Dict
+            POSSIBLE_NAMES = {}
 
         self.MockConstant = MockConstant  # pylint: disable=invalid-name
         self.const_a = MockConstant('a')

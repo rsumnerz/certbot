@@ -8,7 +8,6 @@ import pkg_resources
 import six
 import zope.interface
 
-from acme.magic_typing import List  # pylint: disable=unused-import, no-name-in-module
 from certbot import errors
 from certbot import interfaces
 
@@ -251,7 +250,7 @@ class PluginsRegistryTest(unittest.TestCase):
         self.plugin_ep.prepare.assert_called_once_with()
 
     def test_prepare_order(self):
-        order = []  # type: List[str]
+        order = []
         plugins = dict(
             (c, mock.MagicMock(prepare=functools.partial(order.append, c)))
             for c in string.ascii_letters)

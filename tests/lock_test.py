@@ -198,7 +198,7 @@ def report_failure(err_msg, out, err):
     :param str err: stderr output
 
     """
-    logger.critical(err_msg)
+    logger.fatal(err_msg)
     log_output(logging.INFO, out, err)
     sys.exit(err_msg)
 

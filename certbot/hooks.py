@@ -6,7 +6,6 @@ import os
 
 from subprocess import Popen, PIPE
 
-from acme.magic_typing import Set, List # pylint: disable=unused-import, no-name-in-module
 from certbot import errors
 from certbot import util
 
@@ -77,8 +76,7 @@ def pre_hook(config):
     if cmd:
         _run_pre_hook_if_necessary(cmd)
 
-
-executed_pre_hooks = set()  # type: Set[str]
+pre_hook.already = set()  # type: ignore
 
 
 def _run_pre_hook_if_necessary(command):
@@ -90,12 +88,12 @@ def _run_pre_hook_if_necessary(command):
     :param str command: pre-hook to be run
 
     """
-    if command in executed_pre_hooks:
+    if command in pre_hook.already:
         logger.info("Pre-hook command already run, skipping: %s", command)
     else:
         logger.info("Running pre-hook command: %s", command)
         _run_hook(command)
-        executed_pre_hooks.add(command)
+        pre_hook.already.add(command)
 
 
 def post_hook(config):
@@ -129,8 +127,7 @@ def post_hook(config):
         logger.info("Running post-hook command: %s", cmd)
         _run_hook(cmd)
 
-
-post_hooks = []  # type: List[str]
+post_hook.eventually = []  # type: ignore
 
 
 def _run_eventually(command):
@@ -142,13 +139,13 @@ def _run_eventually(command):
     :param str command: post-hook to register to be run
 
     """
-    if command not in post_hooks:
-        post_hooks.append(command)
+    if command not in post_hook.eventually:
+        post_hook.eventually.append(command)
 
 
 def run_saved_post_hooks():
     """Run any post hooks that were saved up in the course of the 'renew' verb"""
-    for cmd in post_hooks:
+    for cmd in post_hook.eventually:
         logger.info("Running post-hook command: %s", cmd)
         _run_hook(cmd)
 

@@ -17,10 +17,8 @@ We release packages and upload them to PyPI (wheels and source tarballs).
 - https://pypi.python.org/pypi/certbot-dns-dnsimple
 - https://pypi.python.org/pypi/certbot-dns-dnsmadeeasy
 - https://pypi.python.org/pypi/certbot-dns-google
-- https://pypi.python.org/pypi/certbot-dns-linode
 - https://pypi.python.org/pypi/certbot-dns-luadns
 - https://pypi.python.org/pypi/certbot-dns-nsone
-- https://pypi.python.org/pypi/certbot-dns-ovh
 - https://pypi.python.org/pypi/certbot-dns-rfc2136
 - https://pypi.python.org/pypi/certbot-dns-route53
 
@@ -67,7 +65,6 @@ From our official releases:
 - https://www.archlinux.org/packages/community/any/certbot-dns-google
 - https://www.archlinux.org/packages/community/any/certbot-dns-luadns
 - https://www.archlinux.org/packages/community/any/certbot-dns-nsone
-- https://www.archlinux.org/packages/community/any/certbot-dns-ovh
 - https://www.archlinux.org/packages/community/any/certbot-dns-rfc2136
 - https://www.archlinux.org/packages/community/any/certbot-dns-route53
 
@@ -85,20 +82,8 @@ Fedora
 
 In Fedora 23+.
 
-- https://apps.fedoraproject.org/packages/python-acme
-- https://apps.fedoraproject.org/packages/certbot
-- https://apps.fedoraproject.org/packages/python-certbot-apache
-- https://apps.fedoraproject.org/packages/python-certbot-dns-cloudflare
-- https://apps.fedoraproject.org/packages/python-certbot-dns-cloudxns
-- https://apps.fedoraproject.org/packages/python-certbot-dns-digitalocean
-- https://apps.fedoraproject.org/packages/python-certbot-dns-dnsimple
-- https://apps.fedoraproject.org/packages/python-certbot-dns-dnsmadeeasy
-- https://apps.fedoraproject.org/packages/python-certbot-dns-google
-- https://apps.fedoraproject.org/packages/python-certbot-dns-luadns
-- https://apps.fedoraproject.org/packages/python-certbot-dns-nsone
-- https://apps.fedoraproject.org/packages/python-certbot-dns-rfc2136
-- https://apps.fedoraproject.org/packages/python-certbot-dns-route53
-- https://apps.fedoraproject.org/packages/python-certbot-nginx
+- https://admin.fedoraproject.org/pkgdb/package/certbot/
+- https://admin.fedoraproject.org/pkgdb/package/python-acme/
 
 FreeBSD
 -------

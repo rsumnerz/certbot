@@ -10,12 +10,9 @@ import sys
 
 import OpenSSL
 
-from six.moves import xrange  # pylint: disable=import-error,redefined-builtin
-
 from acme import challenges
 from acme import crypto_util
 from acme import messages
-from acme.magic_typing import List, Tuple  # pylint: disable=unused-import, no-name-in-module
 from certbot import achallenges
 from certbot import errors as le_errors
 from certbot.tests import acme_util
@@ -53,8 +50,9 @@ def test_authenticator(plugin, config, temp_dir):
 
     try:
         responses = plugin.perform(achalls)
-    except le_errors.Error:
-        logger.error("Performing challenges on %s caused an error:", config, exc_info=True)
+    except le_errors.Error as error:
+        logger.error("Performing challenges on %s caused an error:", config)
+        logger.exception(error)
         return False
 
     success = True
@@ -82,8 +80,9 @@ def test_authenticator(plugin, config, temp_dir):
     if success:
         try:
             plugin.cleanup(achalls)
-        except le_errors.Error:
-            logger.error("Challenge cleanup for %s caused an error:", config, exc_info=True)
+        except le_errors.Error as error:
+            logger.error("Challenge cleanup for %s caused an error:", config)
+            logger.exception(error)
             success = False
 
         if _dirs_are_unequal(config, backup):
@@ -146,8 +145,9 @@ def test_deploy_cert(plugin, temp_dir, domains):
         try:
             plugin.deploy_cert(domain, cert_path, util.KEY_PATH, cert_path, cert_path)
             plugin.save()  # Needed by the Apache plugin
-        except le_errors.Error:
-            logger.error("**** Plugin failed to deploy certificate for %s:", domain, exc_info=True)
+        except le_errors.Error as error:
+            logger.error("**** Plugin failed to deploy certificate for %s:", domain)
+            logger.exception(error)
             return False
 
     if not _save_and_restart(plugin, "deployed"):
@@ -177,7 +177,7 @@ def test_enhancements(plugin, domains):
                      "enhancements")
         return False
 
-    domains_and_info = [(domain, []) for domain in domains]  # type: List[Tuple[str, List[bool]]]
+    domains_and_info = [(domain, []) for domain in domains]
 
     for domain, info in domains_and_info:
         try:
@@ -190,9 +190,10 @@ def test_enhancements(plugin, domains):
             # Don't immediately fail because a redirect may already be enabled
             logger.warning("*** Plugin failed to enable redirect for %s:", domain)
             logger.warning("%s", error)
-        except le_errors.Error:
+        except le_errors.Error as error:
             logger.error("*** An error occurred while enabling redirect for %s:",
-                         domain, exc_info=True)
+                         domain)
+            logger.exception(error)
 
     if not _save_and_restart(plugin, "enhanced"):
         return False
@@ -219,8 +220,9 @@ def _save_and_restart(plugin, title=None):
         plugin.save(title)
         plugin.restart()
         return True
-    except le_errors.Error:
-        logger.error("*** Plugin failed to save and restart server:", exc_info=True)
+    except le_errors.Error as error:
+        logger.error("*** Plugin failed to save and restart server:")
+        logger.exception(error)
         return False
 
 
@@ -228,8 +230,9 @@ def test_rollback(plugin, config, backup):
     """Tests the rollback checkpoints function"""
     try:
         plugin.rollback_checkpoints(1337)
-    except le_errors.Error:
-        logger.error("*** Plugin raised an exception during rollback:", exc_info=True)
+    except le_errors.Error as error:
+        logger.error("*** Plugin raised an exception during rollback:")
+        logger.exception(error)
         return False
 
     if _dirs_are_unequal(config, backup):
@@ -258,21 +261,21 @@ def _dirs_are_unequal(dir1, dir2):
             logger.error("The following files and directories are only "
                          "present in one directory")
             if dircmp.left_only:
-                logger.error(str(dircmp.left_only))
+                logger.error(dircmp.left_only)
             else:
-                logger.error(str(dircmp.right_only))
+                logger.error(dircmp.right_only)
             return True
         elif dircmp.common_funny or dircmp.funny_files:
             logger.error("The following files and directories could not be "
                          "compared:")
             if dircmp.common_funny:
-                logger.error(str(dircmp.common_funny))
+                logger.error(dircmp.common_funny)
             else:
-                logger.error(str(dircmp.funny_files))
+                logger.error(dircmp.funny_files)
             return True
         elif dircmp.diff_files:
             logger.error("The following files differ:")
-            logger.error(str(dircmp.diff_files))
+            logger.error(dircmp.diff_files)
             return True
 
         for subdir in dircmp.subdirs.itervalues():
@@ -349,8 +352,9 @@ def main():
                     success = test_authenticator(plugin, config, temp_dir)
                 if success and args.install:
                     success = test_installer(args, plugin, config, temp_dir)
-            except errors.Error:
-                logger.error("Tests on %s raised:", config, exc_info=True)
+            except errors.Error as error:
+                logger.error("Tests on %s raised:", config)
+                logger.exception(error)
                 success = False
 
             if success:

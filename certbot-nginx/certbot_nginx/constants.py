@@ -1,17 +1,9 @@
 """nginx plugin constants."""
 import pkg_resources
-import platform
 
-FREEBSD_DARWIN_SERVER_ROOT = "/usr/local/etc/nginx"
-LINUX_SERVER_ROOT = "/etc/nginx"
-
-if platform.system() in ('FreeBSD', 'Darwin'):
-    server_root_tmp = FREEBSD_DARWIN_SERVER_ROOT
-else:
-    server_root_tmp = LINUX_SERVER_ROOT
 
 CLI_DEFAULTS = dict(
-    server_root=server_root_tmp,
+    server_root="/etc/nginx",
     ctl="nginx",
 )
 """CLI defaults."""
@@ -52,7 +44,3 @@ def os_constant(key):
     :return: value of constant for active os
     """
     return CLI_DEFAULTS[key]
-
-HSTS_ARGS = ['\"max-age=31536000\"', ' ', 'always']
-
-HEADER_ARGS = {'Strict-Transport-Security': HSTS_ARGS}
