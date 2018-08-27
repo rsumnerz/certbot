@@ -6,10 +6,6 @@ class Error(Exception):
     """Generic ACME error."""
 
 
-class DependencyError(Error):
-    """Dependency error"""
-
-
 class SchemaValidationError(jose_errors.DeserializationError):
     """JSON schema ACME object validation error."""
 
@@ -53,43 +49,5 @@ class MissingNonce(NonceError):
 
     def __str__(self):
         return ('Server {0} response did not include a replay '
-                'nonce, headers: {1} (This may be a service outage)'.format(
+                'nonce, headers: {1}'.format(
                     self.response.request.method, self.response.headers))
-
-
-class PollError(ClientError):
-    """Generic error when polling for authorization fails.
-
-    This might be caused by either timeout (`exhausted` will be non-empty)
-    or by some authorization being invalid.
-
-    :ivar exhausted: Set of `.AuthorizationResource` that didn't finish
-        within max allowed attempts.
-    :ivar updated: Mapping from original `.AuthorizationResource`
-        to the most recently updated one
-
-    """
-    def __init__(self, exhausted, updated):
-        self.exhausted = exhausted
-        self.updated = updated
-        super(PollError, self).__init__()
-
-    @property
-    def timeout(self):
-        """Was the error caused by timeout?"""
-        return bool(self.exhausted)
-
-    def __repr__(self):
-        return '{0}(exhausted={1!r}, updated={2!r})'.format(
-            self.__class__.__name__, self.exhausted, self.updated)
-
-class ConflictError(ClientError):
-    """Error for when the server returns a 409 (Conflict) HTTP status.
-
-    In the version of ACME implemented by Boulder, this is used to find an
-    account if you only have the private key, but don't know the account URL.
-    """
-    def __init__(self, location):
-        self.location = location
-        super(ConflictError, self).__init__()
-

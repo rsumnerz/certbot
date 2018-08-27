@@ -13,7 +13,7 @@ from acme.jose import jwa
 from acme.jose import jwk
 
 
-CERT = test_util.load_comparable_cert('cert.pem')
+CERT = test_util.load_cert('cert.pem')
 KEY = jwk.JWKRSA.load(test_util.load_vector('rsa512_key.pem'))
 
 
@@ -68,12 +68,13 @@ class HeaderTest(unittest.TestCase):
         from acme.jose.jws import Header
         header = Header(x5c=(CERT, CERT))
         jobj = header.to_partial_json()
-        cert_asn1 = OpenSSL.crypto.dump_certificate(
-            OpenSSL.crypto.FILETYPE_ASN1, CERT.wrapped)
-        cert_b64 = base64.b64encode(cert_asn1)
+        cert_b64 = base64.b64encode(OpenSSL.crypto.dump_certificate(
+            OpenSSL.crypto.FILETYPE_ASN1, CERT))
         self.assertEqual(jobj, {'x5c': [cert_b64, cert_b64]})
         self.assertEqual(header, Header.from_json(jobj))
-        jobj['x5c'][0] = base64.b64encode(b'xxx' + cert_asn1)
+        jobj['x5c'][0] = base64.b64encode(
+            b'xxx' + OpenSSL.crypto.dump_certificate(
+                OpenSSL.crypto.FILETYPE_ASN1, CERT))
         self.assertRaises(errors.DeserializationError, Header.from_json, jobj)
 
     def test_find_key(self):

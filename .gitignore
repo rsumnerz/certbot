@@ -2,14 +2,11 @@
 *.egg-info/
 .eggs/
 build/
-dist*/
-/venv*/
-/kgs/
+dist/
+/venv/
+/venv3/
 /.tox/
-/releases/
 letsencrypt.log
-certbot.log
-letsencrypt-auto-source/letsencrypt-auto.sig.lzma.base64
 
 # coverage
 .coverage
@@ -17,21 +14,11 @@ letsencrypt-auto-source/letsencrypt-auto.sig.lzma.base64
 
 /.vagrant
 
-tags
-
 # editor temporary files
 *~
-*.sw?
+*.swp
 \#*#
 .idea
-.ropeproject
 
 # auth --cert-path --chain-path
 /*.pem
-
-# letstest
-tests/letstest/letest-*/
-tests/letstest/*.pem
-tests/letstest/venv/
-
-.venv

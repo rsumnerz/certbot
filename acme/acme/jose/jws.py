@@ -53,8 +53,8 @@ class Header(json_util.JSONObjectWithFields):
     .. warning:: This class does not support any extensions through
         the "crit" (Critical) Header Parameter (4.1.11) and as a
         conforming implementation, :meth:`from_json` treats its
-        occurrence as an error. Please subclass if you seek for
-        a different behaviour.
+        occurence as an error. Please subclass if you seek for
+        a diferent behaviour.
 
     :ivar x5tS256: "x5t#S256"
     :ivar str typ: MIME Media Type, inc. :const:`MediaType.PREFIX`.
@@ -104,7 +104,7 @@ class Header(json_util.JSONObjectWithFields):
         .. todo:: Supports only "jwk" header parameter lookup.
 
         :returns: (Public) key found in the header.
-        :rtype: .JWK
+        :rtype: :class:`acme.jose.jwk.JWK`
 
         :raises acme.jose.errors.Error: if key could not be found
 
@@ -121,12 +121,12 @@ class Header(json_util.JSONObjectWithFields):
 
     # x5c does NOT use JOSE Base64 (4.1.6)
 
-    @x5c.encoder  # type: ignore
+    @x5c.encoder
     def x5c(value):  # pylint: disable=missing-docstring,no-self-argument
         return [base64.b64encode(OpenSSL.crypto.dump_certificate(
-            OpenSSL.crypto.FILETYPE_ASN1, cert.wrapped)) for cert in value]
+            OpenSSL.crypto.FILETYPE_ASN1, cert)) for cert in value]
 
-    @x5c.decoder  # type: ignore
+    @x5c.decoder
     def x5c(value):  # pylint: disable=missing-docstring,no-self-argument
         try:
             return tuple(util.ComparableX509(OpenSSL.crypto.load_certificate(
@@ -157,12 +157,12 @@ class Signature(json_util.JSONObjectWithFields):
         'signature', decoder=json_util.decode_b64jose,
         encoder=json_util.encode_b64jose)
 
-    @protected.encoder  # type: ignore
+    @protected.encoder
     def protected(value):  # pylint: disable=missing-docstring,no-self-argument
         # wrong type guess (Signature, not bytes) | pylint: disable=no-member
         return json_util.encode_b64jose(value.encode('utf-8'))
 
-    @protected.decoder  # type: ignore
+    @protected.decoder
     def protected(value):  # pylint: disable=missing-docstring,no-self-argument
         return json_util.decode_b64jose(value).decode('utf-8')
 
@@ -194,7 +194,8 @@ class Signature(json_util.JSONObjectWithFields):
     def verify(self, payload, key=None):
         """Verify.
 
-        :param JWK key: Key used for verification.
+        :param key: Key used for verification.
+        :type key: :class:`acme.jose.jwk.JWK`
 
         """
         key = self.combined.find_key() if key is None else key
@@ -207,7 +208,8 @@ class Signature(json_util.JSONObjectWithFields):
              protect=frozenset(), **kwargs):
         """Sign.
 
-        :param JWK key: Key for signature.
+        :param key: Key for signature.
+        :type key: :class:`acme.jose.jwk.JWK`
 
         """
         assert isinstance(key, alg.kty)
@@ -222,8 +224,7 @@ class Signature(json_util.JSONObjectWithFields):
 
         protected_params = {}
         for header in protect:
-            if header in header_params:
-                protected_params[header] = header_params.pop(header)
+            protected_params[header] = header_params.pop(header)
         if protected_params:
             # pylint: disable=star-args
             protected = cls.header_cls(**protected_params).json_dumps()
@@ -293,10 +294,10 @@ class JWS(json_util.JSONObjectWithFields):
         # ... it must be in protected
 
         return (
-            b64.b64encode(self.signature.protected.encode('utf-8')) +
-            b'.' +
-            b64.b64encode(self.payload) +
-            b'.' +
+            b64.b64encode(self.signature.protected.encode('utf-8'))
+            + b'.' +
+            b64.b64encode(self.payload)
+            + b'.' +
             b64.b64encode(self.signature.signature))
 
     @classmethod
@@ -343,7 +344,6 @@ class JWS(json_util.JSONObjectWithFields):
             return cls(payload=json_util.decode_b64jose(jobj['payload']),
                        signatures=tuple(cls.signature_cls.from_json(sig)
                                         for sig in jobj['signatures']))
-
 
 class CLI(object):
     """JWS CLI."""

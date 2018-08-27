@@ -23,75 +23,61 @@ def read_file(filename, encoding='utf8'):
 here = os.path.abspath(os.path.dirname(__file__))
 
 # read version number (and other metadata) from package init
-init_fn = os.path.join(here, 'certbot', '__init__.py')
-meta = dict(re.findall(r"""__([a-z]+)__ = '([^']+)""", read_file(init_fn)))
+init_fn = os.path.join(here, 'letsencrypt', '__init__.py')
+meta = dict(re.findall(r"""__([a-z]+)__ = "([^"]+)""", read_file(init_fn)))
 
 readme = read_file(os.path.join(here, 'README.rst'))
 changes = read_file(os.path.join(here, 'CHANGES.rst'))
-version = meta['version']
 
-# Please update tox.ini when modifying dependency version requirements
-# This package relies on requests, however, it isn't specified here to avoid
-# masking the more specific request requirements in acme. See
-# https://github.com/pypa/pip/issues/988 for more info.
 install_requires = [
-    'acme=={0}'.format(version),
-    # We technically need ConfigArgParse 0.10.0 for Python 2.6 support, but
-    # saying so here causes a runtime error against our temporary fork of 0.9.3
-    # in which we added 2.6 support (see #2243), so we relax the requirement.
-    'ConfigArgParse>=0.9.3',
+    'acme',
+    'ConfigArgParse',
     'configobj',
-    'cryptography>=1.2',  # load_pem_x509_certificate
-    'mock',
-    'parsedatetime>=1.3',  # Calendar.parseDT
+    'cryptography>=0.7',  # load_pem_x509_certificate
+    'mock<1.1.0',  # py26
+    'parsedatetime',
+    'psutil>=2.1.0',  # net_connections introduced in 2.1.0
     'PyOpenSSL',
     'pyrfc3339',
+    'python2-pythondialog>=3.2.2rc1',  # Debian squeeze support, cf. #280
     'pytz',
-    # For pkg_resources. >=1.0 so pip resolves it to a version cryptography
-    # will tolerate; see #2599:
-    'setuptools>=1.0',
-    'six',
     'zope.component',
     'zope.interface',
 ]
 
-# env markers cause problems with older pip and setuptools
+# env markers in extras_require cause problems with older pip: #517
 if sys.version_info < (2, 7):
-    install_requires.extend([
-        'argparse',
-        'ordereddict',
-    ])
+    # only some distros recognize stdlib argparse as already satisfying
+    install_requires.append('argparse')
 
 dev_extras = [
     # Pin astroid==1.3.5, pylint==1.4.2 as a workaround for #289
     'astroid==1.3.5',
-    'coverage',
-    'ipdb',
-    'nose',
     'pylint==1.4.2',  # upstream #248
-    'tox',
-    'twine',
-    'wheel',
 ]
 
 docs_extras = [
     'repoze.sphinx.autointerface',
-    # autodoc_member_order = 'bysource', autodoc_default_flags, and #4686
-    'Sphinx >=1.0,<=1.5.6',
+    'Sphinx>=1.0',  # autodoc_member_order = 'bysource', autodoc_default_flags
     'sphinx_rtd_theme',
 ]
 
+testing_extras = [
+    'coverage',
+    'nose',
+    'nosexcover',
+    'tox',
+]
+
 setup(
-    name='certbot',
-    version=version,
-    description="ACME client",
+    name='letsencrypt',
+    version=meta['version'],
+    description="Let's Encrypt",
     long_description=readme,  # later: + '\n\n' + changes
-    url='https://github.com/letsencrypt/letsencrypt',
-    author="Certbot Project",
-    author_email='client-dev@letsencrypt.org',
+    author="Let's Encrypt Project",
     license='Apache License 2.0',
+    url='https://letsencrypt.org',
     classifiers=[
-        'Development Status :: 3 - Alpha',
         'Environment :: Console',
         'Environment :: Console :: Curses',
         'Intended Audience :: System Administrators',
@@ -101,11 +87,6 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Security',
         'Topic :: System :: Installation/Setup',
@@ -115,27 +96,32 @@ setup(
     ],
 
     packages=find_packages(exclude=['docs', 'examples', 'tests', 'venv']),
-    include_package_data=True,
-
     install_requires=install_requires,
     extras_require={
         'dev': dev_extras,
         'docs': docs_extras,
+        'testing': testing_extras,
     },
 
+    tests_require=install_requires,
     # to test all packages run "python setup.py test -s
-    # {acme,certbot_apache,certbot_nginx}"
-    test_suite='certbot',
+    # {acme,letsencrypt_apache,letsencrypt_nginx}"
+    test_suite='letsencrypt',
 
     entry_points={
         'console_scripts': [
-            'certbot = certbot.main:main',
+            'letsencrypt = letsencrypt.cli:main',
+            'letsencrypt-renewer = letsencrypt.renewer:main',
         ],
-        'certbot.plugins': [
-            'manual = certbot.plugins.manual:Authenticator',
-            'null = certbot.plugins.null:Installer',
-            'standalone = certbot.plugins.standalone:Authenticator',
-            'webroot = certbot.plugins.webroot:Authenticator',
+        'letsencrypt.plugins': [
+            'manual = letsencrypt.plugins.manual:ManualAuthenticator',
+            # TODO: null should probably not be presented to the user
+            'null = letsencrypt.plugins.null:Installer',
+            'standalone = letsencrypt.plugins.standalone.authenticator'
+            ':StandaloneAuthenticator',
         ],
     },
+
+    zip_safe=False,  # letsencrypt/tests/test_util.py is a symlink!
+    include_package_data=True,
 )

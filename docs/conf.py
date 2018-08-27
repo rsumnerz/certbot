@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Certbot documentation build configuration file, created by
+# Let's Encrypt documentation build configuration file, created by
 # sphinx-quickstart on Sun Nov 23 20:35:21 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -17,23 +17,32 @@ import os
 import re
 import sys
 
+import mock
+
+
+# http://docs.readthedocs.org/en/latest/faq.html#i-get-import-errors-on-libraries-that-depend-on-c-modules
+# c.f. #262
+sys.modules.update(
+    (mod_name, mock.MagicMock()) for mod_name in ['augeas'])
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 # read version number (and other metadata) from package init
-init_fn = os.path.join(here, '..', 'certbot', '__init__.py')
+init_fn = os.path.join(here, '..', 'letsencrypt', '__init__.py')
 with codecs.open(init_fn, encoding='utf8') as fd:
-    meta = dict(re.findall(r"""__([a-z]+)__ = '([^']+)""", fd.read()))
+    meta = dict(re.findall(r"""__([a-z]+)__ = "([^"]+)""", fd.read()))
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath(os.path.join(here, '..')))
+for pkg in 'acme', 'letsencrypt-apache', 'letsencrypt-nginx':
+    sys.path.insert(0, os.path.abspath(os.path.join(here, '..', pkg)))
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.0'
+#needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -63,8 +72,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Certbot'
-copyright = u'2014-2016 - The Certbot software and documentation are licensed under the Apache 2.0 license as described at https://eff.org/cb-license '
+project = u'Let\'s Encrypt'
+copyright = u'2014, Let\'s Encrypt Project'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -116,10 +125,6 @@ pygments_style = 'sphinx'
 # If true, keep warnings as "system message" paragraphs in the built documents.
 #keep_warnings = False
 
-# If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
-
-suppress_warnings = ['image.nonlocal_uri']
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -225,30 +230,30 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Certbotdoc'
+htmlhelp_basename = 'LetsEncryptdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #'papersize': 'letterpaper',
+# The paper size ('letterpaper' or 'a4paper').
+#'papersize': 'letterpaper',
 
-    # The font size ('10pt', '11pt' or '12pt').
-    #'pointsize': '10pt',
+# The font size ('10pt', '11pt' or '12pt').
+#'pointsize': '10pt',
 
-    # Additional stuff for the LaTeX preamble.
-    #'preamble': '',
+# Additional stuff for the LaTeX preamble.
+#'preamble': '',
 
-    # Latex figure (float) alignment
-    #'figure_align': 'htbp',
+# Latex figure (float) alignment
+#'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'Certbot.tex', u'Certbot Documentation',
-     u'Certbot Project', 'manual'),
+  ('index', 'LetsEncrypt.tex', u'Let\'s Encrypt Documentation',
+   u'Let\'s Encrypt Project', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -277,10 +282,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'certbot', u'Certbot Documentation',
-     [project], 7),
-    ('man/certbot', 'certbot', u'certbot script documentation',
-     [project], 1),
+    ('index', 'letsencrypt', u'Let\'s Encrypt Documentation',
+     [u'Let\'s Encrypt Project'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -293,9 +296,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'Certbot', u'Certbot Documentation',
-     u'Certbot Project', 'Certbot', 'One line description of project.',
-     'Miscellaneous'),
+  ('index', 'LetsEncrypt', u'Let\'s Encrypt Documentation',
+   u'Let\'s Encrypt Project', 'LetsEncrypt', 'One line description of project.',
+   'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -311,7 +314,7 @@ texinfo_documents = [
 #texinfo_no_detailmenu = False
 
 
-intersphinx_mapping = {
-    'python': ('https://docs.python.org/', None),
-    'acme': ('https://acme-python.readthedocs.org/en/latest/', None),
-}
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {'http://docs.python.org/': None}
+
+todo_include_todos = True

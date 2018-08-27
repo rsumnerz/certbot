@@ -9,9 +9,9 @@ import logging
 
 import cryptography.exceptions
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes  # type: ignore
-from cryptography.hazmat.primitives import hmac  # type: ignore
-from cryptography.hazmat.primitives.asymmetric import padding  # type: ignore
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hmac
+from cryptography.hazmat.primitives.asymmetric import padding
 
 from acme.jose import errors
 from acme.jose import interfaces
@@ -21,16 +21,16 @@ from acme.jose import jwk
 logger = logging.getLogger(__name__)
 
 
-class JWA(interfaces.JSONDeSerializable):  # pylint: disable=abstract-method
+class JWA(interfaces.JSONDeSerializable): # pylint: disable=abstract-method
     # pylint: disable=too-few-public-methods
     # for some reason disable=abstract-method has to be on the line
     # above...
     """JSON Web Algorithm."""
 
 
-class JWASignature(JWA, collections.Hashable):  # type: ignore
+class JWASignature(JWA, collections.Hashable):
     """JSON Web Signature Algorithm."""
-    SIGNATURES = {}  # type: dict
+    SIGNATURES = {}
 
     def __init__(self, name):
         self.name = name
@@ -159,7 +159,7 @@ class _JWAES(JWASignature):  # pylint: disable=abstract-class-not-used
     def sign(self, key, msg):  # pragma: no cover
         raise NotImplementedError()
 
-    def verify(self, key, msg, sig):  # pragma: no cover
+    def verify(self, key, msg, sig): # pragma: no cover
         raise NotImplementedError()
 
 
@@ -176,5 +176,5 @@ PS384 = JWASignature.register(_JWAPS('PS384', hashes.SHA384))
 PS512 = JWASignature.register(_JWAPS('PS512', hashes.SHA512))
 
 ES256 = JWASignature.register(_JWAES('ES256'))
-ES384 = JWASignature.register(_JWAES('ES384'))
-ES512 = JWASignature.register(_JWAES('ES512'))
+ES256 = JWASignature.register(_JWAES('ES384'))
+ES256 = JWASignature.register(_JWAES('ES512'))

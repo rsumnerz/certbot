@@ -1,14 +1,12 @@
 """JSON Web Key."""
 import abc
 import binascii
-import json
 import logging
 
 import cryptography.exceptions
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes  # type: ignore
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec  # type: ignore
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 import six
@@ -25,37 +23,9 @@ class JWK(json_util.TypedJSONObjectWithFields):
     # pylint: disable=too-few-public-methods
     """JSON Web Key."""
     type_field_name = 'kty'
-    TYPES = {}  # type: dict
-    cryptography_key_types = ()  # type: tuple
+    TYPES = {}
+    cryptography_key_types = ()
     """Subclasses should override."""
-
-    required = NotImplemented
-    """Required members of public key's representation as defined by JWK/JWA."""
-
-    _thumbprint_json_dumps_params = {
-        # "no whitespace or line breaks before or after any syntactic
-        # elements"
-        'indent': None,
-        'separators': (',', ':'),
-        # "members ordered lexicographically by the Unicode [UNICODE]
-        # code points of the member names"
-        'sort_keys': True,
-    }
-
-    def thumbprint(self, hash_function=hashes.SHA256):
-        """Compute JWK Thumbprint.
-
-        https://tools.ietf.org/html/rfc7638
-
-        :returns bytes:
-
-        """
-        digest = hashes.Hash(hash_function(), backend=default_backend())
-        digest.update(json.dumps(
-            dict((k, v) for k, v in six.iteritems(self.to_json())
-                 if k in self.required),
-            **self._thumbprint_json_dumps_params).encode())
-        return digest.finalize()
 
     @abc.abstractmethod
     def public_key(self):  # pragma: no cover
@@ -90,7 +60,7 @@ class JWK(json_util.TypedJSONObjectWithFields):
                 exceptions[loader] = error
 
         # no luck
-        raise errors.Error('Unable to deserialize key: {0}'.format(exceptions))
+        raise errors.Error("Unable to deserialize key: {0}".format(exceptions))
 
     @classmethod
     def load(cls, data, password=None, backend=None):
@@ -111,17 +81,17 @@ class JWK(json_util.TypedJSONObjectWithFields):
         try:
             key = cls._load_cryptography_key(data, password, backend)
         except errors.Error as error:
-            logger.debug('Loading symmetric key, asymmetric failed: %s', error)
+            logger.debug("Loading symmetric key, assymentric failed: %s", error)
             return JWKOct(key=data)
 
         if cls.typ is not NotImplemented and not isinstance(
                 key, cls.cryptography_key_types):
-            raise errors.Error('Unable to deserialize {0} into {1}'.format(
+            raise errors.Error("Unable to deserialize {0} into {1}".format(
                 key.__class__, cls.__class__))
         for jwk_cls in six.itervalues(cls.TYPES):
             if isinstance(key, jwk_cls.cryptography_key_types):
                 return jwk_cls(key=key)
-        raise errors.Error('Unsupported algorithm: {0}'.format(key.__class__))
+        raise errors.Error("Unsupported algorithm: {0}".format(key.__class__))
 
 
 @JWK.register
@@ -135,7 +105,6 @@ class JWKES(JWK):  # pragma: no cover
     typ = 'ES'
     cryptography_key_types = (
         ec.EllipticCurvePublicKey, ec.EllipticCurvePrivateKey)
-    required = ('crv', JWK.type_field_name, 'x', 'y')
 
     def fields_to_partial_json(self):
         raise NotImplementedError()
@@ -153,7 +122,6 @@ class JWKOct(JWK):
     """Symmetric JWK."""
     typ = 'oct'
     __slots__ = ('key',)
-    required = ('k', JWK.type_field_name)
 
     def fields_to_partial_json(self):
         # TODO: An "alg" member SHOULD also be present to identify the
@@ -182,7 +150,6 @@ class JWKRSA(JWK):
     typ = 'RSA'
     cryptography_key_types = (rsa.RSAPublicKey, rsa.RSAPrivateKey)
     __slots__ = ('key',)
-    required = ('e', JWK.type_field_name, 'n')
 
     def __init__(self, *args, **kwargs):
         if 'key' in kwargs and not isinstance(
@@ -237,7 +204,7 @@ class JWKRSA(JWK):
                     jobj.get(x) for x in ('p', 'q', 'dp', 'dq', 'qi'))
                 if tuple(param for param in all_params if param is None):
                     raise errors.Error(
-                        'Some private parameters are missing: {0}'.format(
+                        "Some private parameters are missing: {0}".format(
                             all_params))
                 p, q, dp, dq, qi = tuple(
                     cls._decode_param(x) for x in all_params)
@@ -264,7 +231,7 @@ class JWKRSA(JWK):
                 'n': numbers.n,
                 'e': numbers.e,
             }
-        else:  # rsa.RSAPrivateKey
+        else: # rsa.RSAPrivateKey
             private = self.key.private_numbers()
             public = self.key.public_key().public_numbers()
             params = {

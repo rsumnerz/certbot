@@ -1,5 +1,5 @@
-:mod:`certbot.storage`
+:mod:`letsencrypt.storage`
 --------------------------
 
-.. automodule:: certbot.storage
+.. automodule:: letsencrypt.storage
    :members:

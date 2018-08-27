@@ -1,8 +1,8 @@
-Certbot ACME Client
-Copyright (c) Electronic Frontier Foundation and others
+Let's Encrypt:
+Copyright (c) Internet Security Research Group
 Licensed Apache Version 2.0
 
-The nginx plugin incorporates code from nginxparser
+Incorporating code from nginxparser
 Copyright (c) 2014 Fatih Erikli
 Licensed MIT
 

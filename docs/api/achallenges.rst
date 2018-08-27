@@ -1,5 +1,5 @@
-:mod:`certbot.achallenges`
+:mod:`letsencrypt.achallenges`
 ------------------------------
 
-.. automodule:: certbot.achallenges
+.. automodule:: letsencrypt.achallenges
    :members:

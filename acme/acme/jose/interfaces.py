@@ -5,7 +5,6 @@ import json
 
 import six
 
-from acme.jose import errors
 from acme.jose import util
 
 # pylint: disable=no-self-argument,no-method-argument,no-init,inherit-non-class
@@ -41,7 +40,7 @@ class JSONDeSerializable(object):
         be encoded into a JSON document. **Full serialization** produces
         a Python object composed of only basic types as required by the
         :ref:`conversion table <conversion-table>`. **Partial
-        serialization** (accomplished by :meth:`to_partial_json`)
+        serialization** (acomplished by :meth:`to_partial_json`)
         produces a Python object that might also be built from other
         :class:`JSONDeSerializable` objects.
 
@@ -173,11 +172,7 @@ class JSONDeSerializable(object):
     @classmethod
     def json_loads(cls, json_string):
         """Deserialize from JSON document string."""
-        try:
-            loads = json.loads(json_string)
-        except ValueError as error:
-            raise errors.DeserializationError(error)
-        return cls.from_json(loads)
+        return cls.from_json(json.loads(json_string))
 
     def json_dumps(self, **kwargs):
         """Dump to JSON string using proper serializer.

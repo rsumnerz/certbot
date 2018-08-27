@@ -1,5 +1,5 @@
-:mod:`certbot.reporter`
+:mod:`letsencrypt.reporter`
 ---------------------------
 
-.. automodule:: certbot.reporter
+.. automodule:: letsencrypt.reporter
    :members:

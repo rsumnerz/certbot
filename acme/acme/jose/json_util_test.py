@@ -12,8 +12,8 @@ from acme.jose import interfaces
 from acme.jose import util
 
 
-CERT = test_util.load_comparable_cert('cert.pem')
-CSR = test_util.load_comparable_csr('csr.pem')
+CERT = test_util.load_cert('cert.pem')
+CSR = test_util.load_csr('csr.pem')
 
 
 class FieldTest(unittest.TestCase):
@@ -52,7 +52,6 @@ class FieldTest(unittest.TestCase):
             # pylint: disable=missing-docstring
             def to_partial_json(self):
                 return 'foo'  # pragma: no cover
-
             @classmethod
             def from_json(cls, jobj):
                 pass  # pragma: no cover
@@ -94,18 +93,14 @@ class JSONObjectWithFieldsMetaTest(unittest.TestCase):
         self.field2 = Field('Baz2')
         # pylint: disable=invalid-name,missing-docstring,too-few-public-methods
         # pylint: disable=blacklisted-name
-
         @six.add_metaclass(JSONObjectWithFieldsMeta)
         class A(object):
             __slots__ = ('bar',)
             baz = self.field
-
         class B(A):
             pass
-
         class C(A):
             baz = self.field2
-
         self.a_cls = A
         self.b_cls = B
         self.c_cls = C
@@ -164,18 +159,6 @@ class JSONObjectWithFieldsTest(unittest.TestCase):
 
     def test_init_defaults(self):
         self.assertEqual(self.mock, self.MockJSONObjectWithFields(y=2, z=3))
-
-    def test_encode(self):
-        self.assertEqual(10, self.MockJSONObjectWithFields(
-            x=5, y=0, z=0).encode("x"))
-
-    def test_encode_wrong_field(self):
-        self.assertRaises(errors.Error, self.mock.encode, 'foo')
-
-    def test_encode_serialization_error_passthrough(self):
-        self.assertRaises(
-            errors.SerializationError,
-            self.MockJSONObjectWithFields(y=500, z=None).encode, "y")
 
     def test_fields_to_partial_json_omits_empty(self):
         self.assertEqual(self.mock.fields_to_partial_json(), {'y': 2, 'Z': 3})

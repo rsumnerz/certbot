@@ -1,7 +1,7 @@
 #!/bin/sh
 # This script generates a simple SAN CSR to be used with Let's Encrypt
-# CA. Mostly intended for "auth --csr" testing, but, since it's easily
-# auditable, feel free to adjust it and use it on your production web
+# CA. Mostly intedened for "auth --csr" testing, but, since its easily
+# auditable, feel free to adjust it and use on you production web
 # server.
 
 if [ "$#" -lt 1 ]
@@ -25,4 +25,4 @@ SAN="$domains" openssl req -config "${OPENSSL_CNF:-openssl.cnf}" \
   -outform DER
 # 512 or 1024 too low for Boulder, 2048 is smallest for tests
 
-echo "You can now run: certbot auth --csr ${CSR_PATH:-csr.der}"
+echo "You can now run: letsencrypt auth --csr ${CSR_PATH:-csr.der}"

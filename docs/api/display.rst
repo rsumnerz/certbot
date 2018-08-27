@@ -1,23 +1,29 @@
-:mod:`certbot.display`
+:mod:`letsencrypt.display`
 --------------------------
 
-.. automodule:: certbot.display
+.. automodule:: letsencrypt.display
    :members:
 
-:mod:`certbot.display.util`
+:mod:`letsencrypt.display.util`
 ===============================
 
-.. automodule:: certbot.display.util
+.. automodule:: letsencrypt.display.util
    :members:
 
-:mod:`certbot.display.ops`
+:mod:`letsencrypt.display.ops`
 ==============================
 
-.. automodule:: certbot.display.ops
+.. automodule:: letsencrypt.display.ops
    :members:
 
-:mod:`certbot.display.enhancements`
+:mod:`letsencrypt.display.enhancements`
 =======================================
 
-.. automodule:: certbot.display.enhancements
+.. automodule:: letsencrypt.display.enhancements
+   :members:
+
+:mod:`letsencrypt.display.revocation`
+=====================================
+
+.. automodule:: letsencrypt.display.revocation
    :members:

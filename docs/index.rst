@@ -1,21 +1,19 @@
-Welcome to the Certbot documentation!
+Welcome to the Let's Encrypt client documentation!
 ==================================================
 
 .. toctree::
    :maxdepth: 2
 
    intro
-   what
-   install
    using
    contributing
-   packaging
-   resources
+   plugins
 
 .. toctree::
    :maxdepth: 1
 
    api
+   pkgs
 
 
 Indices and tables

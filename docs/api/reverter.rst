@@ -1,5 +1,5 @@
-:mod:`certbot.reverter`
+:mod:`letsencrypt.reverter`
 ---------------------------
 
-.. automodule:: certbot.reverter
+.. automodule:: letsencrypt.reverter
    :members:

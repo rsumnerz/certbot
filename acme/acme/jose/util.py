@@ -29,41 +29,32 @@ class abstractclassmethod(classmethod):
 class ComparableX509(object):  # pylint: disable=too-few-public-methods
     """Wrapper for OpenSSL.crypto.X509** objects that supports __eq__.
 
-    :ivar wrapped: Wrapped certificate or certificate request.
-    :type wrapped: `OpenSSL.crypto.X509` or `OpenSSL.crypto.X509Req`.
+    Wraps around:
+
+      - :class:`OpenSSL.crypto.X509`
+      - :class:`OpenSSL.crypto.X509Req`
 
     """
     def __init__(self, wrapped):
         assert isinstance(wrapped, OpenSSL.crypto.X509) or isinstance(
             wrapped, OpenSSL.crypto.X509Req)
-        self.wrapped = wrapped
+        self._wrapped = wrapped
 
     def __getattr__(self, name):
-        return getattr(self.wrapped, name)
+        return getattr(self._wrapped, name)
 
     def _dump(self, filetype=OpenSSL.crypto.FILETYPE_ASN1):
-        """Dumps the object into a buffer with the specified encoding.
-
-        :param int filetype: The desired encoding. Should be one of
-            `OpenSSL.crypto.FILETYPE_ASN1`,
-            `OpenSSL.crypto.FILETYPE_PEM`, or
-            `OpenSSL.crypto.FILETYPE_TEXT`.
-
-        :returns: Encoded X509 object.
-        :rtype: str
-
-        """
-        if isinstance(self.wrapped, OpenSSL.crypto.X509):
+        # pylint: disable=missing-docstring,protected-access
+        if isinstance(self._wrapped, OpenSSL.crypto.X509):
             func = OpenSSL.crypto.dump_certificate
         else:  # assert in __init__ makes sure this is X509Req
             func = OpenSSL.crypto.dump_certificate_request
-        return func(filetype, self.wrapped)
+        return func(filetype, self._wrapped)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return NotImplemented
-        # pylint: disable=protected-access
-        return self._dump() == other._dump()
+        return self._dump() == other._dump()  # pylint: disable=protected-access
 
     def __hash__(self):
         return hash((self.__class__, self._dump()))
@@ -72,7 +63,7 @@ class ComparableX509(object):  # pylint: disable=too-few-public-methods
         return not self == other
 
     def __repr__(self):
-        return '<{0}({1!r})>'.format(self.__class__.__name__, self.wrapped)
+        return '<{0}({1!r})>'.format(self.__class__.__name__, self._wrapped)
 
 
 class ComparableKey(object):  # pylint: disable=too-few-public-methods
@@ -116,8 +107,8 @@ class ComparableRSAKey(ComparableKey):  # pylint: disable=too-few-public-methods
     """Wrapper for `cryptography` RSA keys.
 
     Wraps around:
-    - `cryptography.hazmat.primitives.asymmetric.RSAPrivateKey`
-    - `cryptography.hazmat.primitives.asymmetric.RSAPublicKey`
+    - `cryptography.hazmat.primitives.assymetric.RSAPrivateKey`
+    - `cryptography.hazmat.primitives.assymetric.RSAPublicKey`
 
     """
 
@@ -134,12 +125,12 @@ class ComparableRSAKey(ComparableKey):  # pylint: disable=too-few-public-methods
             return hash((self.__class__, pub.n, pub.e))
 
 
-class ImmutableMap(collections.Mapping, collections.Hashable):  # type: ignore
+class ImmutableMap(collections.Mapping, collections.Hashable):
     # pylint: disable=too-few-public-methods
     """Immutable key to value mapping with attribute access."""
 
     __slots__ = ()
-    """Must be overridden in subclasses."""
+    """Must be overriden in subclasses."""
 
     def __init__(self, **kwargs):
         if set(kwargs) != set(self.__slots__):
@@ -180,7 +171,7 @@ class ImmutableMap(collections.Mapping, collections.Hashable):  # type: ignore
             for key, value in six.iteritems(self)))
 
 
-class frozendict(collections.Mapping, collections.Hashable):  # type: ignore
+class frozendict(collections.Mapping, collections.Hashable):
     # pylint: disable=invalid-name,too-few-public-methods
     """Frozen dictionary."""
     __slots__ = ('_items', '_keys')

@@ -8,8 +8,8 @@ from acme import jose
 from acme import test_util
 
 
-CERT = test_util.load_comparable_cert('cert.der')
-CSR = test_util.load_comparable_csr('csr.der')
+CERT = test_util.load_cert('cert.der')
+CSR = test_util.load_csr('csr.der')
 KEY = test_util.load_rsa_private_key('rsa512_key.pem')
 
 
@@ -17,59 +17,42 @@ class ErrorTest(unittest.TestCase):
     """Tests for acme.messages.Error."""
 
     def setUp(self):
-        from acme.messages import Error, ERROR_PREFIX
-        self.error = Error(
-            detail='foo', typ=ERROR_PREFIX + 'malformed', title='title')
-        self.jobj = {
-            'detail': 'foo',
-            'title': 'some title',
-            'type': ERROR_PREFIX + 'malformed',
-        }
-        self.error_custom = Error(typ='custom', detail='bar')
-        self.empty_error = Error()
-        self.jobj_custom = {'type': 'custom', 'detail': 'bar'}
-
-    def test_default_typ(self):
         from acme.messages import Error
-        self.assertEqual(Error().typ, 'about:blank')
+        self.error = Error(detail='foo', typ='malformed', title='title')
+        self.jobj = {'detail': 'foo', 'title': 'some title'}
 
-    def test_from_json_empty(self):
+    def test_typ_prefix(self):
+        self.assertEqual('malformed', self.error.typ)
+        self.assertEqual(
+            'urn:acme:error:malformed', self.error.to_partial_json()['type'])
+        self.assertEqual(
+            'malformed', self.error.from_json(self.error.to_partial_json()).typ)
+
+    def test_typ_decoder_missing_prefix(self):
         from acme.messages import Error
-        self.assertEqual(Error(), Error.from_json('{}'))
+        self.jobj['type'] = 'malformed'
+        self.assertRaises(jose.DeserializationError, Error.from_json, self.jobj)
+        self.jobj['type'] = 'not valid bare type'
+        self.assertRaises(jose.DeserializationError, Error.from_json, self.jobj)
+
+    def test_typ_decoder_not_recognized(self):
+        from acme.messages import Error
+        self.jobj['type'] = 'urn:acme:error:baz'
+        self.assertRaises(jose.DeserializationError, Error.from_json, self.jobj)
+
+    def test_description(self):
+        self.assertEqual(
+            'The request message was malformed', self.error.description)
 
     def test_from_json_hashable(self):
         from acme.messages import Error
         hash(Error.from_json(self.error.to_json()))
 
-    def test_description(self):
+    def test_str(self):
         self.assertEqual(
-            'The request message was malformed', self.error.description)
-        self.assertTrue(self.error_custom.description is None)
-
-    def test_code(self):
-        from acme.messages import Error
-        self.assertEqual('malformed', self.error.code)
-        self.assertEqual(None, self.error_custom.code)
-        self.assertEqual(None, Error().code)
-
-    def test_is_acme_error(self):
-        from acme.messages import is_acme_error
-        self.assertTrue(is_acme_error(self.error))
-        self.assertFalse(is_acme_error(self.error_custom))
-        self.assertFalse(is_acme_error(self.empty_error))
-        self.assertFalse(is_acme_error("must pet all the {dogs|rabbits}"))
-
-    def test_unicode_error(self):
-        from acme.messages import Error, ERROR_PREFIX, is_acme_error
-        arabic_error = Error(
-                detail=u'\u0639\u062f\u0627\u0644\u0629', typ=ERROR_PREFIX + 'malformed',
-            title='title')
-        self.assertTrue(is_acme_error(arabic_error))
-
-    def test_with_code(self):
-        from acme.messages import Error, is_acme_error
-        self.assertTrue(is_acme_error(Error.with_code('badCSR')))
-        self.assertRaises(ValueError, Error.with_code, 'not an ACME error code')
+            'malformed :: The request message was malformed :: foo',
+            str(self.error))
+        self.assertEqual('foo', str(self.error.update(typ=None)))
 
 
 class ConstantTest(unittest.TestCase):
@@ -77,7 +60,6 @@ class ConstantTest(unittest.TestCase):
 
     def setUp(self):
         from acme.messages import _Constant
-
         class MockConstant(_Constant):  # pylint: disable=missing-docstring
             POSSIBLE_NAMES = {}
 
@@ -110,56 +92,6 @@ class ConstantTest(unittest.TestCase):
         self.assertFalse(self.const_a != const_a_prime)
 
 
-class DirectoryTest(unittest.TestCase):
-    """Tests for acme.messages.Directory."""
-
-    def setUp(self):
-        from acme.messages import Directory
-        self.dir = Directory({
-            'new-reg': 'reg',
-            mock.MagicMock(resource_type='new-cert'): 'cert',
-            'meta': Directory.Meta(
-                terms_of_service='https://example.com/acme/terms',
-                website='https://www.example.com/',
-                caa_identities=['example.com'],
-            ),
-        })
-
-    def test_init_wrong_key_value_success(self):  # pylint: disable=no-self-use
-        from acme.messages import Directory
-        Directory({'foo': 'bar'})
-
-    def test_getitem(self):
-        self.assertEqual('reg', self.dir['new-reg'])
-        from acme.messages import NewRegistration
-        self.assertEqual('reg', self.dir[NewRegistration])
-        self.assertEqual('reg', self.dir[NewRegistration()])
-
-    def test_getitem_fails_with_key_error(self):
-        self.assertRaises(KeyError, self.dir.__getitem__, 'foo')
-
-    def test_getattr(self):
-        self.assertEqual('reg', self.dir.new_reg)
-
-    def test_getattr_fails_with_attribute_error(self):
-        self.assertRaises(AttributeError, self.dir.__getattr__, 'foo')
-
-    def test_to_json(self):
-        self.assertEqual(self.dir.to_json(), {
-            'new-reg': 'reg',
-            'new-cert': 'cert',
-            'meta': {
-                'terms-of-service': 'https://example.com/acme/terms',
-                'website': 'https://www.example.com/',
-                'caa-identities': ['example.com'],
-            },
-        })
-
-    def test_from_json_deserialization_unknown_key_success(self):  # pylint: disable=no-self-use
-        from acme.messages import Directory
-        Directory.from_json({'foo': 'bar'})
-
-
 class RegistrationTest(unittest.TestCase):
     """Tests for acme.messages.Registration."""
 
@@ -169,14 +101,18 @@ class RegistrationTest(unittest.TestCase):
             'mailto:admin@foo.com',
             'tel:1234',
         )
+        recovery_token = 'XYZ'
         agreement = 'https://letsencrypt.org/terms'
 
         from acme.messages import Registration
-        self.reg = Registration(key=key, contact=contact, agreement=agreement)
+        self.reg = Registration(
+            key=key, contact=contact, recovery_token=recovery_token,
+            agreement=agreement)
         self.reg_none = Registration()
 
         self.jobj_to = {
             'contact': contact,
+            'recoveryToken': recovery_token,
             'agreement': agreement,
             'key': key,
         }
@@ -209,17 +145,6 @@ class RegistrationTest(unittest.TestCase):
         hash(Registration.from_json(self.jobj_from))
 
 
-class UpdateRegistrationTest(unittest.TestCase):
-    """Tests for acme.messages.UpdateRegistration."""
-
-    def test_empty(self):
-        from acme.messages import UpdateRegistration
-        jstring = '{"resource": "reg"}'
-        self.assertEqual(jstring, UpdateRegistration().json_dumps())
-        self.assertEqual(
-            UpdateRegistration(), UpdateRegistration.json_loads(jstring))
-
-
 class RegistrationResourceTest(unittest.TestCase):
     """Tests for acme.messages.RegistrationResource."""
 
@@ -227,12 +152,14 @@ class RegistrationResourceTest(unittest.TestCase):
         from acme.messages import RegistrationResource
         self.regr = RegistrationResource(
             body=mock.sentinel.body, uri=mock.sentinel.uri,
+            new_authzr_uri=mock.sentinel.new_authzr_uri,
             terms_of_service=mock.sentinel.terms_of_service)
 
     def test_to_partial_json(self):
         self.assertEqual(self.regr.to_json(), {
             'body': mock.sentinel.body,
             'uri': mock.sentinel.uri,
+            'new_authzr_uri': mock.sentinel.new_authzr_uri,
             'terms_of_service': mock.sentinel.terms_of_service,
         })
 
@@ -250,14 +177,13 @@ class ChallengeBodyTest(unittest.TestCase):
     """Tests for acme.messages.ChallengeBody."""
 
     def setUp(self):
-        self.chall = challenges.DNS(token=jose.b64decode(
-            'evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA'))
+        self.chall = challenges.DNS(token='foo')
 
         from acme.messages import ChallengeBody
         from acme.messages import Error
         from acme.messages import STATUS_INVALID
         self.status = STATUS_INVALID
-        error = Error(typ='urn:ietf:params:acme:error:serverInternal',
+        error = Error(typ='serverInternal',
                       detail='Unable to communicate with DNS server')
         self.challb = ChallengeBody(
             uri='http://challb', chall=self.chall, status=self.status,
@@ -267,15 +193,16 @@ class ChallengeBodyTest(unittest.TestCase):
             'uri': 'http://challb',
             'status': self.status,
             'type': 'dns',
-            'token': 'evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA',
+            'token': 'foo',
             'error': error,
         }
         self.jobj_from = self.jobj_to.copy()
         self.jobj_from['status'] = 'invalid'
         self.jobj_from['error'] = {
-            'type': 'urn:ietf:params:acme:error:serverInternal',
+            'type': 'urn:acme:error:serverInternal',
             'detail': 'Unable to communicate with DNS server',
         }
+
 
     def test_to_partial_json(self):
         self.assertEqual(self.jobj_to, self.challb.to_partial_json())
@@ -289,8 +216,7 @@ class ChallengeBodyTest(unittest.TestCase):
         hash(ChallengeBody.from_json(self.jobj_from))
 
     def test_proxy(self):
-        self.assertEqual(jose.b64decode(
-            'evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA'), self.challb.token)
+        self.assertEqual('foo', self.challb.token)
 
 
 class AuthorizationTest(unittest.TestCase):
@@ -299,16 +225,16 @@ class AuthorizationTest(unittest.TestCase):
     def setUp(self):
         from acme.messages import ChallengeBody
         from acme.messages import STATUS_VALID
-
         self.challbs = (
             ChallengeBody(
                 uri='http://challb1', status=STATUS_VALID,
-                chall=challenges.HTTP01(token=b'IlirfxKKXAsHtmzK29Pj8A')),
+                chall=challenges.SimpleHTTP(token='IlirfxKKXAsHtmzK29Pj8A')),
             ChallengeBody(uri='http://challb2', status=STATUS_VALID,
-                          chall=challenges.DNS(
-                              token=b'DGyRejmCefe7v4NfDGDKfA')),
+                          chall=challenges.DNS(token='DGyRejmCefe7v4NfDGDKfA')),
+            ChallengeBody(uri='http://challb3', status=STATUS_VALID,
+                          chall=challenges.RecoveryToken()),
         )
-        combinations = ((0,), (1,))
+        combinations = ((0, 2), (1, 2))
 
         from acme.messages import Authorization
         from acme.messages import Identifier
@@ -334,8 +260,8 @@ class AuthorizationTest(unittest.TestCase):
 
     def test_resolved_combinations(self):
         self.assertEqual(self.authz.resolved_combinations, (
-            (self.challbs[0],),
-            (self.challbs[1],),
+            (self.challbs[0], self.challbs[2]),
+            (self.challbs[1], self.challbs[2]),
         ))
 
 
@@ -346,7 +272,9 @@ class AuthorizationResourceTest(unittest.TestCase):
         from acme.messages import AuthorizationResource
         authzr = AuthorizationResource(
             uri=mock.sentinel.uri,
-            body=mock.sentinel.body)
+            body=mock.sentinel.body,
+            new_cert_uri=mock.sentinel.new_cert_uri,
+        )
         self.assertTrue(isinstance(authzr, jose.JSONDeSerializable))
 
 
@@ -355,7 +283,7 @@ class CertificateRequestTest(unittest.TestCase):
 
     def setUp(self):
         from acme.messages import CertificateRequest
-        self.req = CertificateRequest(csr=CSR)
+        self.req = CertificateRequest(csr=CSR, authorizations=('foo',))
 
     def test_json_de_serializable(self):
         self.assertTrue(isinstance(self.req, jose.JSONDeSerializable))
@@ -382,6 +310,13 @@ class CertificateResourceTest(unittest.TestCase):
 
 class RevocationTest(unittest.TestCase):
     """Tests for acme.messages.RevocationTest."""
+
+    def test_url(self):
+        from acme.messages import Revocation
+        url = 'https://letsencrypt-demo.org/acme/revoke-cert'
+        self.assertEqual(url, Revocation.url('https://letsencrypt-demo.org'))
+        self.assertEqual(
+            url, Revocation.url('https://letsencrypt-demo.org/acme/new-reg'))
 
     def setUp(self):
         from acme.messages import Revocation

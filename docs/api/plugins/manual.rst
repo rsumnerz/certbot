@@ -1,5 +1,5 @@
-:mod:`certbot.plugins.manual`
+:mod:`letsencrypt.plugins.manual`
 ---------------------------------
 
-.. automodule:: certbot.plugins.manual
+.. automodule:: letsencrypt.plugins.manual
    :members:

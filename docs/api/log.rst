@@ -1,5 +1,5 @@
-:mod:`certbot.log`
+:mod:`letsencrypt.log`
 ----------------------
 
-.. automodule:: certbot.log
+.. automodule:: letsencrypt.log
    :members:

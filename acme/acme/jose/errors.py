@@ -8,10 +8,6 @@ class Error(Exception):
 class DeserializationError(Error):
     """JSON deserialization error."""
 
-    def __str__(self):
-        return "Deserialization error: {0}".format(
-            super(DeserializationError, self).__str__())
-
 
 class SerializationError(Error):
     """JSON serialization error."""
