@@ -2,13 +2,11 @@
 import binascii
 import contextlib
 import logging
-import os
 import re
 import socket
+import sys
 
 import OpenSSL
-import josepy as jose
-
 
 from acme import errors
 
@@ -131,7 +129,8 @@ def probe_sni(name, host, port=443, timeout=300,
     context = OpenSSL.SSL.Context(method)
     context.set_timeout(timeout)
 
-    socket_kwargs = {'source_address': source_address}
+    socket_kwargs = {} if sys.version_info < (2, 7) else {
+        'source_address': source_address}
 
     host_protocol_agnostic = None if host == '::' or host == '0' else host
 
@@ -185,15 +184,6 @@ def make_csr(private_key_pem, domains, must_staple=False):
     csr.sign(private_key, 'sha256')
     return OpenSSL.crypto.dump_certificate_request(
         OpenSSL.crypto.FILETYPE_PEM, csr)
-
-def _pyopenssl_cert_or_req_all_names(loaded_cert_or_req):
-    common_name = loaded_cert_or_req.get_subject().CN
-    sans = _pyopenssl_cert_or_req_san(loaded_cert_or_req)
-
-    if common_name is None:
-        return sans
-    else:
-        return [common_name] + [d for d in sans if d != common_name]
 
 def _pyopenssl_cert_or_req_san(cert_or_req):
     """Get Subject Alternative Names from certificate or CSR using pyOpenSSL.
@@ -253,7 +243,7 @@ def gen_ss_cert(key, domains, not_before=None,
     """
     assert domains, "Must provide one or more hostnames for the cert."
     cert = OpenSSL.crypto.X509()
-    cert.set_serial_number(int(binascii.hexlify(os.urandom(16)), 16))
+    cert.set_serial_number(int(binascii.hexlify(OpenSSL.rand.bytes(16)), 16))
     cert.set_version(2)
 
     extensions = [
@@ -280,26 +270,3 @@ def gen_ss_cert(key, domains, not_before=None,
     cert.set_pubkey(key)
     cert.sign(key, "sha256")
     return cert
-
-def dump_pyopenssl_chain(chain, filetype=OpenSSL.crypto.FILETYPE_PEM):
-    """Dump certificate chain into a bundle.
-
-    :param list chain: List of `OpenSSL.crypto.X509` (or wrapped in
-        :class:`josepy.util.ComparableX509`).
-
-    :returns: certificate chain bundle
-    :rtype: bytes
-
-    """
-    # XXX: returns empty string when no chain is available, which
-    # shuts up RenewableCert, but might not be the best solution...
-
-    def _dump_cert(cert):
-        if isinstance(cert, jose.ComparableX509):
-            # pylint: disable=protected-access
-            cert = cert.wrapped
-        return OpenSSL.crypto.dump_certificate(filetype, cert)
-
-    # assumes that OpenSSL.crypto.dump_certificate includes ending
-    # newline character
-    return b"".join(_dump_cert(cert) for cert in chain)

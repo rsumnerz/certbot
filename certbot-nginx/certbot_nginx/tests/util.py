@@ -5,9 +5,10 @@ import pkg_resources
 import tempfile
 import unittest
 
-import josepy as jose
 import mock
 import zope.component
+
+from acme import jose
 
 from certbot import configuration
 
@@ -64,7 +65,6 @@ def get_nginx_configurator(
                     in_progress_dir=os.path.join(backups, "IN_PROGRESS"),
                     server="https://acme-server.org:443/new",
                     tls_sni_01_port=5001,
-                    http01_port=80
                 ),
                 name="nginx",
                 version=version)

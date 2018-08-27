@@ -1,6 +1,5 @@
 """Tests for certbot.plugins.null."""
 import unittest
-import six
 
 import mock
 
@@ -13,7 +12,7 @@ class InstallerTest(unittest.TestCase):
         self.installer = Installer(config=mock.MagicMock(), name="null")
 
     def test_it(self):
-        self.assertTrue(isinstance(self.installer.more_info(), six.string_types))
+        self.assertTrue(isinstance(self.installer.more_info(), str))
         self.assertEqual([], self.installer.get_all_names())
         self.assertEqual([], self.installer.supported_enhancements())
 

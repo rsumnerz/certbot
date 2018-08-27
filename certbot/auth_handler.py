@@ -1,5 +1,4 @@
 """ACME AuthHandler."""
-import collections
 import logging
 import time
 
@@ -18,10 +17,6 @@ from certbot import interfaces
 logger = logging.getLogger(__name__)
 
 
-AnnotatedAuthzr = collections.namedtuple("AnnotatedAuthzr", ["authzr", "achalls"])
-"""Stores an authorization resource and its active annotated challenges."""
-
-
 class AuthHandler(object):
     """ACME Authorization Handler for a client.
 
@@ -29,13 +24,15 @@ class AuthHandler(object):
         :class:`~acme.challenges.Challenge` types
     :type auth: :class:`certbot.interfaces.IAuthenticator`
 
-    :ivar acme.client.BackwardsCompatibleClientV2 acme: ACME client API.
+    :ivar acme.client.Client acme: ACME client API.
 
     :ivar account: Client's Account
     :type account: :class:`certbot.account.Account`
 
-    :ivar aauthzrs: ACME Authorization Resources and their active challenges
-    :type aauthzrs: `list` of `AnnotatedAuthzr`
+    :ivar dict authzr: ACME Authorization Resource dict where keys are domains
+        and values are :class:`acme.messages.AuthorizationResource`
+    :ivar list achalls: DV challenges in the form of
+        :class:`certbot.achallenges.AnnotatedChallenge`
     :ivar list pref_challs: sorted user specified preferred challenges
         type strings with the most preferred challenge listed first
 
@@ -45,16 +42,18 @@ class AuthHandler(object):
         self.acme = acme
 
         self.account = account
-        self.aauthzrs = []
+        self.authzr = dict()
         self.pref_challs = pref_challs
 
-    def handle_authorizations(self, orderr, best_effort=False):
+        # List must be used to keep responses straight.
+        self.achalls = []
+
+    def get_authorizations(self, domains, best_effort=False):
         """Retrieve all authorizations for challenges.
 
-        :param acme.messages.OrderResource orderr: must have
-            authorizations filled in
+        :param list domains: Domains for authorization
         :param bool best_effort: Whether or not all authorizations are
-            required (this is useful in renewal)
+             required (this is useful in renewal)
 
         :returns: List of authorization resources
         :rtype: list
@@ -63,15 +62,15 @@ class AuthHandler(object):
             authorizations
 
         """
-        for authzr in orderr.authorizations:
-            self.aauthzrs.append(AnnotatedAuthzr(authzr, []))
+        for domain in domains:
+            self.authzr[domain] = self.acme.request_domain_challenges(domain)
 
-        self._choose_challenges()
+        self._choose_challenges(domains)
         config = zope.component.getUtility(interfaces.IConfig)
         notify = zope.component.getUtility(interfaces.IDisplay).notification
 
         # While there are still challenges remaining...
-        while self._has_challenges():
+        while self.achalls:
             resp = self._solve_challenges()
             logger.info("Waiting for verification...")
             if config.debug_challenges:
@@ -85,8 +84,8 @@ class AuthHandler(object):
         self.verify_authzr_complete()
 
         # Only return valid authorizations
-        retVal = [aauthzr.authzr for aauthzr in self.aauthzrs
-                  if aauthzr.authzr.body.status == messages.STATUS_VALID]
+        retVal = [authzr for authzr in self.authzr.values()
+                  if authzr.body.status == messages.STATUS_VALID]
 
         if not retVal:
             raise errors.AuthorizationError(
@@ -94,53 +93,34 @@ class AuthHandler(object):
 
         return retVal
 
-    def _choose_challenges(self):
+    def _choose_challenges(self, domains):
         """Retrieve necessary challenges to satisfy server."""
         logger.info("Performing the following challenges:")
-        for aauthzr in self.aauthzrs:
-            aauthzr_challenges = aauthzr.authzr.body.challenges
-            if self.acme.acme_version == 1:
-                combinations = aauthzr.authzr.body.combinations
-            else:
-                combinations = tuple((i,) for i in range(len(aauthzr_challenges)))
-
+        for dom in domains:
             path = gen_challenge_path(
-                aauthzr_challenges,
-                self._get_chall_pref(aauthzr.authzr.body.identifier.value),
-                combinations)
+                self.authzr[dom].body.challenges,
+                self._get_chall_pref(dom),
+                self.authzr[dom].body.combinations)
 
-            aauthzr_achalls = self._challenge_factory(
-                aauthzr.authzr, path)
-            aauthzr.achalls.extend(aauthzr_achalls)
-
-    def _has_challenges(self):
-        """Do we have any challenges to perform?"""
-        return any(aauthzr.achalls for aauthzr in self.aauthzrs)
+            dom_achalls = self._challenge_factory(
+                dom, path)
+            self.achalls.extend(dom_achalls)
 
     def _solve_challenges(self):
         """Get Responses for challenges from authenticators."""
         resp = []
-        all_achalls = self._get_all_achalls()
         with error_handler.ErrorHandler(self._cleanup_challenges):
             try:
-                if all_achalls:
-                    resp = self.auth.perform(all_achalls)
+                if self.achalls:
+                    resp = self.auth.perform(self.achalls)
             except errors.AuthorizationError:
                 logger.critical("Failure in setting up challenges.")
                 logger.info("Attempting to clean up outstanding challenges...")
                 raise
 
-        assert len(resp) == len(all_achalls)
+        assert len(resp) == len(self.achalls)
 
         return resp
-
-    def _get_all_achalls(self):
-        """Return all active challenges."""
-        all_achalls = []
-        for aauthzr in self.aauthzrs:
-            all_achalls.extend(aauthzr.achalls)
-
-        return all_achalls
 
     def _respond(self, resp, best_effort):
         """Send/Receive confirmation of all challenges.
@@ -150,67 +130,69 @@ class AuthHandler(object):
         """
         # TODO: chall_update is a dirty hack to get around acme-spec #105
         chall_update = dict()
-        active_achalls = self._send_responses(resp, chall_update)
+        active_achalls = self._send_responses(self.achalls,
+                                              resp, chall_update)
 
         # Check for updated status...
         try:
             self._poll_challenges(chall_update, best_effort)
         finally:
+            # This removes challenges from self.achalls
             self._cleanup_challenges(active_achalls)
 
-    def _send_responses(self, resps, chall_update):
+    def _send_responses(self, achalls, resps, chall_update):
         """Send responses and make sure errors are handled.
 
         :param dict chall_update: parameter that is updated to hold
-            aauthzr index to list of outstanding solved annotated challenges
+            authzr -> list of outstanding solved annotated challenges
 
         """
         active_achalls = []
-        resps_iter = iter(resps)
-        for i, aauthzr in enumerate(self.aauthzrs):
-            for achall in aauthzr.achalls:
-                # This line needs to be outside of the if block below to
-                # ensure failed challenges are cleaned up correctly
-                active_achalls.append(achall)
+        for achall, resp in six.moves.zip(achalls, resps):
+            # This line needs to be outside of the if block below to
+            # ensure failed challenges are cleaned up correctly
+            active_achalls.append(achall)
 
-                resp = next(resps_iter)
-                # Don't send challenges for None and False authenticator responses
-                if resp:
-                    self.acme.answer_challenge(achall.challb, resp)
-                    # TODO: answer_challenge returns challr, with URI,
-                    # that can be used in _find_updated_challr
-                    # comparisons...
-                    chall_update.setdefault(i, []).append(achall)
+            # Don't send challenges for None and False authenticator responses
+            if resp is not None and resp:
+                self.acme.answer_challenge(achall.challb, resp)
+                # TODO: answer_challenge returns challr, with URI,
+                # that can be used in _find_updated_challr
+                # comparisons...
+                if achall.domain in chall_update:
+                    chall_update[achall.domain].append(achall)
+                else:
+                    chall_update[achall.domain] = [achall]
 
         return active_achalls
 
     def _poll_challenges(
             self, chall_update, best_effort, min_sleep=3, max_rounds=15):
         """Wait for all challenge results to be determined."""
-        indices_to_check = set(chall_update.keys())
-        comp_indices = set()
+        dom_to_check = set(chall_update.keys())
+        comp_domains = set()
         rounds = 0
 
-        while indices_to_check and rounds < max_rounds:
+        while dom_to_check and rounds < max_rounds:
             # TODO: Use retry-after...
             time.sleep(min_sleep)
             all_failed_achalls = set()
-            for index in indices_to_check:
+            for domain in dom_to_check:
                 comp_achalls, failed_achalls = self._handle_check(
-                    index, chall_update[index])
+                    domain, chall_update[domain])
 
-                if len(comp_achalls) == len(chall_update[index]):
-                    comp_indices.add(index)
+                if len(comp_achalls) == len(chall_update[domain]):
+                    comp_domains.add(domain)
                 elif not failed_achalls:
                     for achall, _ in comp_achalls:
-                        chall_update[index].remove(achall)
+                        chall_update[domain].remove(achall)
                 # We failed some challenges... damage control
                 else:
                     if best_effort:
-                        comp_indices.add(index)
+                        comp_domains.add(domain)
                         logger.warning(
                             "Challenge failed for domain %s",
-                            self.aauthzrs[index].authzr.body.identifier.value)
+                            domain)
                     else:
                         all_failed_achalls.update(
                             updated for _, updated in failed_achalls)
@@ -219,26 +201,24 @@ class AuthHandler(object):
                 _report_failed_challs(all_failed_achalls)
                 raise errors.FailedChallenges(all_failed_achalls)
 
-            indices_to_check -= comp_indices
-            comp_indices.clear()
+            dom_to_check -= comp_domains
+            comp_domains.clear()
             rounds += 1
 
-    def _handle_check(self, index, achalls):
+    def _handle_check(self, domain, achalls):
         """Returns tuple of ('completed', 'failed')."""
         completed = []
         failed = []
 
-        original_aauthzr = self.aauthzrs[index]
-        updated_authzr, _ = self.acme.poll(original_aauthzr.authzr)
-        self.aauthzrs[index] = AnnotatedAuthzr(updated_authzr, original_aauthzr.achalls)
-        if updated_authzr.body.status == messages.STATUS_VALID:
+        self.authzr[domain], _ = self.acme.poll(self.authzr[domain])
+        if self.authzr[domain].body.status == messages.STATUS_VALID:
             return achalls, []
 
         # Note: if the whole authorization is invalid, the individual failed
         #     challenges will be determined here...
         for achall in achalls:
             updated_achall = achall.update(challb=self._find_updated_challb(
-                updated_authzr, achall))
+                self.authzr[domain], achall))
 
             # This does nothing for challenges that have yet to be decided yet.
             if updated_achall.status == messages.STATUS_VALID:
@@ -296,17 +276,14 @@ class AuthHandler(object):
         logger.info("Cleaning up challenges")
 
         if achall_list is None:
-            achalls = self._get_all_achalls()
+            achalls = self.achalls
         else:
             achalls = achall_list
 
         if achalls:
             self.auth.cleanup(achalls)
             for achall in achalls:
-                for aauthzr in self.aauthzrs:
-                    if achall in aauthzr.achalls:
-                        aauthzr.achalls.remove(achall)
-                        break
+                self.achalls.remove(achall)
 
     def verify_authzr_complete(self):
         """Verifies that all authorizations have been decided.
@@ -315,16 +292,15 @@ class AuthHandler(object):
         :rtype: bool
 
         """
-        for aauthzr in self.aauthzrs:
-            authzr = aauthzr.authzr
+        for authzr in self.authzr.values():
             if (authzr.body.status != messages.STATUS_VALID and
                     authzr.body.status != messages.STATUS_INVALID):
                 raise errors.AuthorizationError("Incomplete authorizations")
 
-    def _challenge_factory(self, authzr, path):
+    def _challenge_factory(self, domain, path):
         """Construct Namedtuple Challenges
 
-        :param messages.AuthorizationResource authzr: authorization
+        :param str domain: domain of the enrollee
 
         :param list path: List of indices from `challenges`.
 
@@ -338,9 +314,8 @@ class AuthHandler(object):
         achalls = []
 
         for index in path:
-            challb = authzr.body.challenges[index]
-            achalls.append(challb_to_achall(
-                challb, self.account.key, authzr.body.identifier.value))
+            challb = self.authzr[domain].body.challenges[index]
+            achalls.append(challb_to_achall(challb, self.account.key, domain))
 
         return achalls
 
@@ -433,7 +408,7 @@ def _find_smart_path(challbs, preferences, combinations):
         combo_total = 0
 
     if not best_combo:
-        _report_no_chall_path(challbs)
+        _report_no_chall_path()
 
     return best_combo
 
@@ -454,23 +429,15 @@ def _find_dumb_path(challbs, preferences):
         if supported:
             path.append(i)
         else:
-            _report_no_chall_path(challbs)
+            _report_no_chall_path()
 
     return path
 
 
-def _report_no_chall_path(challbs):
-    """Logs and raises an error that no satisfiable chall path exists.
-
-    :param challbs: challenges from the authorization that can't be satisfied
-
-    """
+def _report_no_chall_path():
+    """Logs and raises an error that no satisfiable chall path exists."""
     msg = ("Client with the currently selected authenticator does not support "
            "any combination of challenges that will satisfy the CA.")
-    if len(challbs) == 1 and isinstance(challbs[0].chall, challenges.DNS01):
-        msg += (
-            " You may need to use an authenticator "
-            "plugin that can do challenges over DNS.")
     logger.fatal(msg)
     raise errors.AuthorizationError(msg)
 

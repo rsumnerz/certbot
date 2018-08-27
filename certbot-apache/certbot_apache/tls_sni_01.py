@@ -7,6 +7,7 @@ from certbot.plugins import common
 from certbot.errors import PluginError, MissingCommandlineFlag
 
 from certbot_apache import obj
+from certbot_apache import parser
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +105,7 @@ class ApacheTlsSni01(common.TLSSNI01):
 
         config_text += "</IfModule>\n"
 
-        self.configurator.parser.add_include(
-            self.configurator.parser.loc["default"], self.challenge_conf)
+        self._conf_include_check(self.configurator.parser.loc["default"])
         self.configurator.reverter.register_file_creation(
             True, self.challenge_conf)
 
@@ -141,6 +141,24 @@ class ApacheTlsSni01(common.TLSSNI01):
                         self.configurator.config.tls_sni_01_port))
 
         return addrs
+
+    def _conf_include_check(self, main_config):
+        """Add TLS-SNI-01 challenge conf file into configuration.
+
+        Adds TLS-SNI-01 challenge include file if it does not already exist
+        within mainConfig
+
+        :param str main_config: file path to main user apache config file
+
+        """
+        if len(self.configurator.parser.find_dir(
+                parser.case_i("Include"), self.challenge_conf)) == 0:
+            # print "Including challenge virtual host(s)"
+            logger.debug("Adding Include %s to %s",
+                         self.challenge_conf, parser.get_aug_path(main_config))
+            self.configurator.parser.add_dir(
+                parser.get_aug_path(main_config),
+                "Include", self.challenge_conf)
 
     def _get_config_text(self, achall, ip_addrs):
         """Chocolate virtual server configuration text

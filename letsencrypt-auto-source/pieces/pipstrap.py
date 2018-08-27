@@ -21,9 +21,7 @@ anything goes wrong, it will exit with a non-zero status code.
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
 from __future__ import print_function
-from distutils.version import StrictVersion
 from hashlib import sha256
-from os import environ
 from os.path import join
 from pipes import quote
 from shutil import rmtree
@@ -57,33 +55,26 @@ except ImportError:
     from urllib.parse import urlparse  # 3.4
 
 
-__version__ = 1, 5, 0
-PIP_VERSION = '9.0.1'
-DEFAULT_INDEX_BASE = 'https://pypi.python.org'
+__version__ = 1, 1, 1
 
 
 # wheel has a conditional dependency on argparse:
 maybe_argparse = (
-    [('18/dd/e617cfc3f6210ae183374cd9f6a26b20514bbb5a792af97949c5aacddf0f/'
+    [('https://pypi.python.org/packages/source/a/argparse/'
       'argparse-1.4.0.tar.gz',
       '62b089a55be1d8949cd2bc7e0df0bddb9e028faefc8c32038cc84862aefdd6e4')]
     if version_info < (2, 7, 0) else [])
 
 
-# Pip has no dependencies, as it vendors everything:
-PIP_PACKAGE = [
-    ('11/b6/abcb525026a4be042b486df43905d6893fb04f05aac21c32c638e939e447/'
-     'pip-{0}.tar.gz'.format(PIP_VERSION),
-     '09f243e1a7b461f654c26a725fa373211bb7ff17a9300058b205c61658ca940d')]
-
-
-OTHER_PACKAGES = maybe_argparse + [
+PACKAGES = maybe_argparse + [
+    # Pip has no dependencies, as it vendors everything:
+    ('https://pypi.python.org/packages/source/p/pip/pip-8.0.3.tar.gz',
+     '30f98b66f3fe1069c529a491597d34a1c224a68640c82caf2ade5f88aa1405e8'),
     # This version of setuptools has only optional dependencies:
-    ('59/88/2f3990916931a5de6fa9706d6d75eb32ee8b78627bb2abaab7ed9e6d0622/'
-     'setuptools-29.0.1.tar.gz',
-     'b539118819a4857378398891fa5366e090690e46b3e41421a1e07d6e9fd8feb0'),
-    ('c9/1d/bd19e691fd4cfe908c76c429fe6e4436c9e83583c4414b54f6c85471954a/'
-     'wheel-0.29.0.tar.gz',
+    ('https://pypi.python.org/packages/source/s/setuptools/'
+     'setuptools-20.2.2.tar.gz',
+     '24fcfc15364a9fe09a220f37d2dcedc849795e3de3e4b393ee988e66a9cbd85a'),
+    ('https://pypi.python.org/packages/source/w/wheel/wheel-0.29.0.tar.gz',
      '1ebb8ad7e26b448e9caa4773d2357849bf80ff9e313964bcaf79cbf0201a1648')
 ]
 
@@ -103,13 +94,12 @@ def hashed_download(url, temp, digest):
     # >=2.7.9 verifies HTTPS certs itself, and, in any case, the cert
     # authenticity has only privacy (not arbitrary code execution)
     # implications, since we're checking hashes.
-    def opener(using_https=True):
+    def opener():
         opener = build_opener(HTTPSHandler())
-        if using_https:
-            # Strip out HTTPHandler to prevent MITM spoof:
-            for handler in opener.handlers:
-                if isinstance(handler, HTTPHandler):
-                    opener.handlers.remove(handler)
+        # Strip out HTTPHandler to prevent MITM spoof:
+        for handler in opener.handlers:
+            if isinstance(handler, HTTPHandler):
+                opener.handlers.remove(handler)
         return opener
 
     def read_chunks(response, chunk_size):
@@ -119,9 +109,8 @@ def hashed_download(url, temp, digest):
                 break
             yield chunk
 
-    parsed_url = urlparse(url)
-    response = opener(using_https=parsed_url.scheme == 'https').open(url)
-    path = join(temp, parsed_url.path.split('/')[-1])
+    response = opener().open(url)
+    path = join(temp, urlparse(url).path.split('/')[-1])
     actual_hash = sha256()
     with open(path, 'wb') as file:
         for chunk in read_chunks(response, 4096):
@@ -134,49 +123,14 @@ def hashed_download(url, temp, digest):
     return path
 
 
-def get_index_base():
-    """Return the URL to the dir containing the "packages" folder.
-
-    Try to wring something out of PIP_INDEX_URL, if set. Hack "/simple" off the
-    end if it's there; that is likely to give us the right dir.
-
-    """
-    env_var = environ.get('PIP_INDEX_URL', '').rstrip('/')
-    if env_var:
-        SIMPLE = '/simple'
-        if env_var.endswith(SIMPLE):
-            return env_var[:-len(SIMPLE)]
-        else:
-            return env_var
-    else:
-        return DEFAULT_INDEX_BASE
-
-
 def main():
-    pip_version = StrictVersion(check_output(['pip', '--version'])
-                                .decode('utf-8').split()[1])
-    min_pip_version = StrictVersion(PIP_VERSION)
-    if pip_version >= min_pip_version:
-        return 0
-    has_pip_cache = pip_version >= StrictVersion('6.0')
-    index_base = get_index_base()
     temp = mkdtemp(prefix='pipstrap-')
     try:
-        # We download and install pip first, then the rest, to avoid the bug
-        # https://github.com/certbot/certbot/issues/4938.
-        pip_downloads, other_downloads = [
-            [hashed_download(index_base + '/packages/' + path,
-                             temp,
-                             digest)
-             for path, digest in packages]
-            for packages in (PIP_PACKAGE, OTHER_PACKAGES)]
-        for downloads in (pip_downloads, other_downloads):
-            check_output('pip install --no-index --no-deps -U ' +
-                         # Disable cache since we're not using it and it
-                         # otherwise sometimes throws permission warnings:
-                         ('--no-cache-dir ' if has_pip_cache else '') +
-                         ' '.join(quote(d) for d in downloads),
-                         shell=True)
+        downloads = [hashed_download(url, temp, digest)
+                     for url, digest in PACKAGES]
+        check_output('pip install --no-index --no-deps -U ' +
+                     ' '.join(quote(d) for d in downloads),
+                     shell=True)
     except HashError as exc:
         print(exc)
     except Exception:

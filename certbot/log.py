@@ -165,7 +165,12 @@ class ColoredStreamHandler(logging.StreamHandler):
 
     """
     def __init__(self, stream=None):
-        super(ColoredStreamHandler, self).__init__(stream)
+        # logging handlers use old style classes in Python 2.6 so
+        # super() cannot be used
+        if sys.version_info < (2, 7):  # pragma: no cover
+            logging.StreamHandler.__init__(self, stream)
+        else:
+            super(ColoredStreamHandler, self).__init__(stream)
         self.colored = (sys.stderr.isatty() if stream is None else
                         stream.isatty())
         self.red_level = logging.WARNING
@@ -179,7 +184,9 @@ class ColoredStreamHandler(logging.StreamHandler):
         :rtype: str
 
         """
-        out = super(ColoredStreamHandler, self).format(record)
+        out = (logging.StreamHandler.format(self, record)
+               if sys.version_info < (2, 7)
+               else super(ColoredStreamHandler, self).format(record))
         if self.colored and record.levelno >= self.red_level:
             return ''.join((util.ANSI_SGR_RED, out, util.ANSI_SGR_RESET))
         else:
@@ -196,14 +203,23 @@ class MemoryHandler(logging.handlers.MemoryHandler):
     def __init__(self, target=None):
         # capacity doesn't matter because should_flush() is overridden
         capacity = float('inf')
-        super(MemoryHandler, self).__init__(capacity, target=target)
+        # logging handlers use old style classes in Python 2.6 so
+        # super() cannot be used
+        if sys.version_info < (2, 7):  # pragma: no cover
+            logging.handlers.MemoryHandler.__init__(
+                self, capacity, target=target)
+        else:
+            super(MemoryHandler, self).__init__(capacity, target=target)
 
     def close(self):
         """Close the memory handler, but don't set the target to None."""
         # This allows the logging module which may only have a weak
         # reference to the target handler to properly flush and close it.
         target = self.target
-        super(MemoryHandler, self).close()
+        if sys.version_info < (2, 7):  # pragma: no cover
+            logging.handlers.MemoryHandler.close(self)
+        else:
+            super(MemoryHandler, self).close()
         self.target = target
 
     def flush(self, force=False):  # pylint: disable=arguments-differ
@@ -217,7 +233,10 @@ class MemoryHandler(logging.handlers.MemoryHandler):
         # This method allows flush() calls in logging.shutdown to be a
         # noop so we can control when this handler is flushed.
         if force:
-            super(MemoryHandler, self).flush()
+            if sys.version_info < (2, 7):  # pragma: no cover
+                logging.handlers.MemoryHandler.flush(self)
+            else:
+                super(MemoryHandler, self).flush()
 
     def shouldFlush(self, record):
         """Should the buffer be automatically flushed?
@@ -243,7 +262,12 @@ class TempHandler(logging.StreamHandler):
     """
     def __init__(self):
         stream = tempfile.NamedTemporaryFile('w', delete=False)
-        super(TempHandler, self).__init__(stream)
+        # logging handlers use old style classes in Python 2.6 so
+        # super() cannot be used
+        if sys.version_info < (2, 7):  # pragma: no cover
+            logging.StreamHandler.__init__(self, stream)
+        else:
+            super(TempHandler, self).__init__(stream)
         self.path = stream.name
         self._delete = True
 
@@ -254,7 +278,12 @@ class TempHandler(logging.StreamHandler):
 
         """
         self._delete = False
-        super(TempHandler, self).emit(record)
+        # logging handlers use old style classes in Python 2.6 so
+        # super() cannot be used
+        if sys.version_info < (2, 7):  # pragma: no cover
+            logging.StreamHandler.emit(self, record)
+        else:
+            super(TempHandler, self).emit(record)
 
     def close(self):
         """Close the handler and the temporary log file.
@@ -270,7 +299,10 @@ class TempHandler(logging.StreamHandler):
             if self._delete:
                 os.remove(self.path)
             self._delete = False
-            super(TempHandler, self).close()
+            if sys.version_info < (2, 7):  # pragma: no cover
+                logging.StreamHandler.close(self)
+            else:
+                super(TempHandler, self).close()
         finally:
             self.release()
 
@@ -327,11 +359,11 @@ def post_arg_parse_except_hook(exc_type, exc_value, trace, debug, log_path):
         logger.debug('Exiting abnormally:', exc_info=exc_info)
         if issubclass(exc_type, errors.Error):
             sys.exit(exc_value)
-        logger.error('An unexpected error occurred:')
+        print('An unexpected error occurred:', file=sys.stderr)
         if messages.is_acme_error(exc_value):
             # Remove the ACME error prefix from the exception
             _, _, exc_str = str(exc_value).partition(':: ')
-            logger.error(exc_str)
+            print(exc_str, file=sys.stderr)
         else:
             traceback.print_exception(exc_type, exc_value, None)
     exit_with_log_path(log_path)

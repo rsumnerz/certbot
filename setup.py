@@ -30,37 +30,44 @@ readme = read_file(os.path.join(here, 'README.rst'))
 changes = read_file(os.path.join(here, 'CHANGES.rst'))
 version = meta['version']
 
-# This package relies on PyOpenSSL, requests, and six, however, it isn't
-# specified here to avoid masking the more specific request requirements in
-# acme. See https://github.com/pypa/pip/issues/988 for more info.
+# Please update tox.ini when modifying dependency version requirements
+# This package relies on requests, however, it isn't specified here to avoid
+# masking the more specific request requirements in acme. See
+# https://github.com/pypa/pip/issues/988 for more info.
 install_requires = [
-    # Remember to update local-oldest-requirements.txt when changing the
-    # minimum acme version.
-    'acme>0.21.1',
+    'acme=={0}'.format(version),
     # We technically need ConfigArgParse 0.10.0 for Python 2.6 support, but
     # saying so here causes a runtime error against our temporary fork of 0.9.3
     # in which we added 2.6 support (see #2243), so we relax the requirement.
     'ConfigArgParse>=0.9.3',
     'configobj',
     'cryptography>=1.2',  # load_pem_x509_certificate
-    'josepy',
     'mock',
     'parsedatetime>=1.3',  # Calendar.parseDT
+    'PyOpenSSL',
     'pyrfc3339',
     'pytz',
-    'setuptools',
+    # For pkg_resources. >=1.0 so pip resolves it to a version cryptography
+    # will tolerate; see #2599:
+    'setuptools>=1.0',
+    'six',
     'zope.component',
     'zope.interface',
 ]
+
+# env markers cause problems with older pip and setuptools
+if sys.version_info < (2, 7):
+    install_requires.extend([
+        'argparse',
+        'ordereddict',
+    ])
 
 dev_extras = [
     # Pin astroid==1.3.5, pylint==1.4.2 as a workaround for #289
     'astroid==1.3.5',
     'coverage',
     'ipdb',
-    'pytest',
-    'pytest-cov',
-    'pytest-xdist',
+    'nose',
     'pylint==1.4.2',  # upstream #248
     'tox',
     'twine',
@@ -83,7 +90,6 @@ setup(
     author="Certbot Project",
     author_email='client-dev@letsencrypt.org',
     license='Apache License 2.0',
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
@@ -93,8 +99,10 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',

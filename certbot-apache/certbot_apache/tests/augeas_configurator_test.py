@@ -13,6 +13,7 @@ from certbot_apache.tests import util
 class AugeasConfiguratorTest(util.ApacheTest):
     """Test for Augeas Configurator base class."""
 
+    _multiprocess_can_split_ = True
 
     def setUp(self):  # pylint: disable=arguments-differ
         super(AugeasConfiguratorTest, self).setUp()
@@ -30,7 +31,7 @@ class AugeasConfiguratorTest(util.ApacheTest):
 
     def test_bad_parse(self):
         # pylint: disable=protected-access
-        self.config.parser.parse_file(os.path.join(
+        self.config.parser._parse_file(os.path.join(
             self.config.parser.root, "conf-available", "bad_conf_file.conf"))
         self.assertRaises(
             errors.PluginError, self.config.check_parsing_errors, "httpd.aug")

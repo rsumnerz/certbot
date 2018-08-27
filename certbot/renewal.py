@@ -108,7 +108,7 @@ def _restore_webroot_config(config, renewalparams):
     elif "webroot_path" in renewalparams:
         logger.debug("Ancient renewal conf file without webroot-map, restoring webroot-path")
         wp = renewalparams["webroot_path"]
-        if isinstance(wp, six.string_types):  # prior to 0.1.0, webroot_path was a string
+        if isinstance(wp, str):  # prior to 0.1.0, webroot_path was a string
             wp = [wp]
         config.webroot_path = wp
 
@@ -194,7 +194,7 @@ def _restore_pref_challs(unused_name, value):
     # If pref_challs has only one element, configobj saves the value
     # with a trailing comma so it's parsed as a list. If this comma is
     # removed by the user, the value is parsed as a str.
-    value = [value] if isinstance(value, six.string_types) else value
+    value = [value] if isinstance(value, str) else value
     return cli.parse_preferred_challenges(value)
 
 
@@ -294,12 +294,15 @@ def renew_cert(config, domains, le_client, lineage):
     _avoid_invalidating_lineage(config, lineage, original_server)
     if not domains:
         domains = lineage.names()
-    new_cert, new_chain, new_key, _ = le_client.obtain_certificate(domains)
+    new_certr, new_chain, new_key, _ = le_client.obtain_certificate(domains)
     if config.dry_run:
         logger.debug("Dry run: skipping updating lineage at %s",
                     os.path.dirname(lineage.cert))
     else:
         prior_version = lineage.latest_common_version()
+        new_cert = OpenSSL.crypto.dump_certificate(
+            OpenSSL.crypto.FILETYPE_PEM, new_certr.body.wrapped)
+        new_chain = crypto_util.dump_pyopenssl_chain(new_chain)
         # TODO: Check return value of save_successor
         lineage.save_successor(prior_version, new_cert, new_key.pem, new_chain, config)
         lineage.update_all_links_to(lineage.latest_common_version())
@@ -317,12 +320,6 @@ def _renew_describe_results(config, renew_successes, renew_failures,
 
     out = []
     notify = out.append
-    disp = zope.component.getUtility(interfaces.IDisplay)
-
-    def notify_error(err):
-        """Notify and log errors."""
-        notify(err)
-        logger.error(err)
 
     if config.dry_run:
         notify("** DRY RUN: simulating 'certbot renew' close to cert expiry")
@@ -341,14 +338,14 @@ def _renew_describe_results(config, renew_successes, renew_failures,
                "have been renewed:")
         notify(report(renew_successes, "success"))
     elif renew_failures and not renew_successes:
-        notify_error("All renewal attempts failed. The following certs could "
-               "not be renewed:")
-        notify_error(report(renew_failures, "failure"))
+        notify("All renewal attempts failed. The following certs could not be "
+               "renewed:")
+        notify(report(renew_failures, "failure"))
     elif renew_failures and renew_successes:
         notify("The following certs were successfully renewed:")
-        notify(report(renew_successes, "success") + "\n")
-        notify_error("The following certs could not be renewed:")
-        notify_error(report(renew_failures, "failure"))
+        notify(report(renew_successes, "success"))
+        notify("\nThe following certs could not be renewed:")
+        notify(report(renew_failures, "failure"))
 
     if parse_failures:
         notify("\nAdditionally, the following renewal configuration files "
@@ -359,7 +356,9 @@ def _renew_describe_results(config, renew_successes, renew_failures,
         notify("** DRY RUN: simulating 'certbot renew' close to cert expiry")
         notify("**          (The test certificates above have not been saved.)")
 
-    disp.notification("\n".join(out), wrap=False)
+    if config.quiet and not (renew_failures or parse_failures):
+        return
+    print("\n".join(out))
 
 
 def handle_renewal_request(config):
@@ -373,8 +372,8 @@ def handle_renewal_request(config):
                            "renewing all installed certificates that are due "
                            "to be renewed or renewing a single certificate specified "
                            "by its name. If you would like to renew specific "
-                           "certificates by their domains, use the certonly command "
-                           "instead. The renew verb may provide other options "
+                           "certificates by their domains, use the certonly "
+                           "command. The renew verb may provide other options "
                            "for selecting certificates to renew in the future.")
 
     if config.certname:
@@ -390,16 +389,14 @@ def handle_renewal_request(config):
         disp = zope.component.getUtility(interfaces.IDisplay)
         disp.notification("Processing " + renewal_file, pause=False)
         lineage_config = copy.deepcopy(config)
-        lineagename = storage.lineagename_for_filename(renewal_file)
 
         # Note that this modifies config (to add back the configuration
         # elements from within the renewal configuration file).
         try:
             renewal_candidate = _reconstitute(lineage_config, renewal_file)
         except Exception as e:  # pylint: disable=broad-except
-            logger.warning("Renewal configuration file %s (cert: %s) "
-                           "produced an unexpected error: %s. Skipping.",
-                           renewal_file, lineagename, e)
+            logger.warning("Renewal configuration file %s produced an "
+                           "unexpected error: %s. Skipping.", renewal_file, e)
             logger.debug("Traceback was:\n%s", traceback.format_exc())
             parse_failures.append(renewal_file)
             continue
@@ -422,15 +419,11 @@ def handle_renewal_request(config):
                     main.renew_cert(lineage_config, plugins, renewal_candidate)
                     renew_successes.append(renewal_candidate.fullchain)
                 else:
-                    expiry = crypto_util.notAfter(renewal_candidate.version(
-                        "cert", renewal_candidate.latest_common_version()))
-                    renew_skipped.append("%s expires on %s" % (renewal_candidate.fullchain,
-                                         expiry.strftime("%Y-%m-%d")))
+                    renew_skipped.append(renewal_candidate.fullchain)
         except Exception as e:  # pylint: disable=broad-except
             # obtain_cert (presumably) encountered an unanticipated problem.
-            logger.warning("Attempting to renew cert (%s) from %s produced an "
-                           "unexpected error: %s. Skipping.", lineagename,
-                               renewal_file, e)
+            logger.warning("Attempting to renew cert from %s produced an "
+                           "unexpected error: %s. Skipping.", renewal_file, e)
             logger.debug("Traceback was:\n%s", traceback.format_exc())
             renew_failures.append(renewal_candidate.fullchain)
 

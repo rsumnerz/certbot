@@ -106,7 +106,7 @@ specified ``--webroot-path``. So, for instance,
 
 ::
 
-    certbot certonly --webroot -w /var/www/example -d www.example.com -d example.com -w /var/www/other -d other.example.net -d another.other.example.net
+    certbot certonly --webroot -w /var/www/example/ -d www.example.com -d example.com -w /var/www/other -d other.example.net -d another.other.example.net
 
 would obtain a single certificate for all of those names, using the
 ``/var/www/example`` webroot directory for the first two, and
@@ -383,12 +383,6 @@ use the ``revoke`` command to do so. Note that the ``revoke`` command takes the 
 
   certbot revoke --cert-path /etc/letsencrypt/live/CERTNAME/cert.pem
 
-You can also specify the reason for revoking your certificate by using the ``reason`` flag.
-Reasons include ``unspecified`` which is the default, as well as ``keycompromise``,
-``affiliationchanged``, ``superseded``, and ``cessationofoperation``::
-
-  certbot revoke --cert-path /etc/letsencrypt/live/CERTNAME/cert.pem --reason keycompromise
-
 Additionally, if a certificate
 is a test certificate obtained via the ``--staging`` or ``--test-cert`` flag, that flag must be passed to the
 ``revoke`` subcommand.
@@ -398,8 +392,6 @@ relevant files can be removed from the system with the ``delete`` subcommand::
   certbot delete --cert-name example.com
 
 .. note:: If you don't use ``delete`` to remove the certificate completely, it will be renewed automatically at the next renewal event.
-
-.. note:: Revoking a certificate will have no effect on the rate limit imposed by the Let's Encrypt server.
 
 .. _renewal:
 
@@ -486,26 +478,6 @@ apply appropriate file permissions.
            esac
    done
 
-You can also specify hooks by placing files in subdirectories of Certbot's
-configuration directory. Assuming your configuration directory is
-``/etc/letsencrypt``, any executable files found in
-``/etc/letsencrypt/renewal-hooks/pre``,
-``/etc/letsencrypt/renewal-hooks/deploy``, and
-``/etc/letsencrypt/renewal-hooks/post`` will be run as pre, deploy, and post
-hooks respectively when any certificate is renewed with the ``renew``
-subcommand. These hooks are run in alphabetical order and are not run for other
-subcommands. (The order the hooks are run is determined by the byte value of
-the characters in their filenames and is not dependent on your locale.)
-
-Hooks specified in the command line, :ref:`configuration file
-<config-file>`, or :ref:`renewal configuration files <renewal-config-file>` are
-run as usual after running all hooks in these directories. One minor exception
-to this is if a hook specified elsewhere is simply the path to an executable
-file in the hook directory of the same type (e.g. your pre-hook is the path to
-an executable in ``/etc/letsencrypt/renewal-hooks/pre``), the file is not run a
-second time. You can stop Certbot from automatically running executables found
-in these directories by including ``--no-directory-hooks`` on the command line.
-
 More information about hooks can be found by running
 ``certbot --help renew``.
 
@@ -557,26 +529,17 @@ apologize for any inconvenience you encounter in integrating these
 commands into your individual environment.
 
 .. note:: ``certbot renew`` exit status will only be 1 if a renewal attempt failed.
-  This means ``certbot renew`` exit status will be 0 if no certificate needs to be updated.
-  If you write a custom script and expect to run a command only after a certificate was actually renewed
+  This means ``certbot renew`` exit status will be 0 if no cert needs to be updated.
+  If you write a custom script and expect to run a command only after a cert was actually renewed
   you will need to use the ``--post-hook`` since the exit status will be 0 both on successful renewal
   and when renewal is not necessary.
-
-.. _renewal-config-file:
 
 
 Modifying the Renewal Configuration File
 ----------------------------------------
 
-When a certificate is issued, by default Certbot creates a renewal configuration file that
-tracks the options that were selected when Certbot was run. This allows Certbot
-to use those same options again when it comes time for renewal. These renewal
-configuration files are located at ``/etc/letsencrypt/renewal/CERTNAME``.
-
 For advanced certificate management tasks, it is possible to manually modify the certificate's
-renewal configuration file, but this is discouraged since it can easily break Certbot's
-ability to renew your certificates. If you choose to modify the renewal configuration file
-we advise you to test its validity with the ``certbot renew --dry-run`` command.
+renewal configuration file, located at ``/etc/letsencrypt/renewal/CERTNAME``.
 
 .. warning:: Modifying any files in ``/etc/letsencrypt`` can damage them so Certbot can no longer properly manage its certificates, and we do not recommend doing so.
 
@@ -827,12 +790,7 @@ of Certbot that you would like to run.
 Configuration file
 ==================
 
-Certbot accepts a global configuration file that applies its options to all invocations
-of Certbot. Certificate specific configuration choices should be set in the ``.conf``
-files that can be found in ``/etc/letsencrypt/renewal``.
-
-By default no cli.ini file is created, after creating one 
-it is possible to specify the location of this configuration file with
+It is possible to specify configuration file with
 ``certbot-auto --config cli.ini`` (or shorter ``-c cli.ini``). An
 example configuration file is shown below:
 
@@ -845,13 +803,6 @@ By default, the following locations are searched:
 - ``$XDG_CONFIG_HOME/letsencrypt/cli.ini`` (or
   ``~/.config/letsencrypt/cli.ini`` if ``$XDG_CONFIG_HOME`` is not
   set).
-
-Since this configuration file applies to all invocations of certbot it is incorrect
-to list domains in it. Listing domains in cli.ini may prevent renewal from working.
-Additionally due to how arguments in cli.ini are parsed, options which wish to
-not be set should not be listed. Options set to false will instead be read
-as being set to true by older versions of Certbot, since they have been listed
-in the config file.
 
 .. keep it up to date with constants.py
 

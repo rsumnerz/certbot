@@ -15,4 +15,10 @@ VENV_BIN=${VENV_PATH}/bin
 
 cd letsencrypt
 ./tools/venv.sh
-venv/bin/tox -e py27
+PYVER=`python --version 2>&1 | cut -d" " -f 2 | cut -d. -f1,2 | sed 's/\.//'`
+
+if [ $PYVER -eq 26 ] ; then
+    venv/bin/tox -e py26
+else
+    venv/bin/tox -e py27
+fi

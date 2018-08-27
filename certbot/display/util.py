@@ -117,7 +117,6 @@ class FileDisplay(object):
         self.outfile.write(
             "{line}{frame}{line}{msg}{line}{frame}{line}".format(
                 line=os.linesep, frame=side_frame, msg=message))
-        self.outfile.flush()
         if pause:
             if self._can_interact(force_interactive):
                 input_with_timeout("Press Enter to Continue")
@@ -214,7 +213,6 @@ class FileDisplay(object):
 
         self.outfile.write("{0}{frame}{msg}{0}{frame}".format(
             os.linesep, frame=side_frame, msg=message))
-        self.outfile.flush()
 
         while True:
             ans = input_with_timeout("{yes}/{no}: ".format(
@@ -269,7 +267,6 @@ class FileDisplay(object):
                 else:
                     self.outfile.write(
                         "** Error - Invalid selection **%s" % os.linesep)
-                    self.outfile.flush()
             else:
                 return code, []
 
@@ -398,7 +395,6 @@ class FileDisplay(object):
             self.outfile.write(os.linesep)
 
         self.outfile.write(side_frame)
-        self.outfile.flush()
 
     def _get_valid_int_ans(self, max_):
         """Get a numerical selection.
@@ -432,7 +428,6 @@ class FileDisplay(object):
             except ValueError:
                 self.outfile.write(
                     "{0}** Invalid input **{0}".format(os.linesep))
-                self.outfile.flush()
 
         return OK, selection
 
@@ -488,7 +483,6 @@ class NoninteractiveDisplay(object):
         self.outfile.write(
             "{line}{frame}{line}{msg}{line}{frame}{line}".format(
                 line=os.linesep, frame=side_frame, msg=message))
-        self.outfile.flush()
 
     def menu(self, message, choices, ok_label=None, cancel_label=None,
              help_label=None, default=None, cli_flag=None, **unused_kwargs):

@@ -3,7 +3,6 @@ import argparse
 import unittest
 import os
 import tempfile
-import copy
 
 import mock
 import six
@@ -16,8 +15,6 @@ from certbot import constants
 from certbot import errors
 from certbot.plugins import disco
 
-import certbot.tests.util as test_util
-
 from certbot.tests.util import TempDirTestCase
 
 PLUGINS = disco.PluginsRegistry.find_all()
@@ -26,6 +23,7 @@ PLUGINS = disco.PluginsRegistry.find_all()
 class TestReadFile(TempDirTestCase):
     '''Test cli.read_file'''
 
+    _multiprocess_can_split_ = True
 
     def test_read_file(self):
         rel_test_path = os.path.relpath(os.path.join(self.tempdir, 'foo'))
@@ -45,46 +43,30 @@ class TestReadFile(TempDirTestCase):
 class ParseTest(unittest.TestCase):  # pylint: disable=too-many-public-methods
     '''Test the cli args entrypoint'''
 
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         reload_module(cli)
 
     @staticmethod
-    def _unmocked_parse(*args, **kwargs):
+    def parse(*args, **kwargs):
         """Get result of cli.prepare_and_parse_args."""
         return cli.prepare_and_parse_args(PLUGINS, *args, **kwargs)
-
-    @staticmethod
-    def parse(*args, **kwargs):
-        """Mocks zope.component.getUtility and calls _unmocked_parse."""
-        with test_util.patch_get_utility():
-            return ParseTest._unmocked_parse(*args, **kwargs)
 
     def _help_output(self, args):
         "Run a command, and return the output string for scrutiny"
 
         output = six.StringIO()
-
-        def write_msg(message, *args, **kwargs): # pylint: disable=missing-docstring,unused-argument
-            output.write(message)
-
         with mock.patch('certbot.main.sys.stdout', new=output):
-            with test_util.patch_get_utility() as mock_get_utility:
-                mock_get_utility().notification.side_effect = write_msg
-                with mock.patch('certbot.main.sys.stderr'):
-                    self.assertRaises(SystemExit, self._unmocked_parse, args, output)
-
+            with mock.patch('certbot.main.sys.stderr'):
+                self.assertRaises(SystemExit, self.parse, args, output)
         return output.getvalue()
 
     @mock.patch("certbot.cli.flag_default")
     def test_cli_ini_domains(self, mock_flag_default):
         tmp_config = tempfile.NamedTemporaryFile()
         # use a shim to get ConfigArgParse to pick up tmp_config
-        shim = (
-                lambda v: copy.deepcopy(constants.CLI_DEFAULTS[v])
-                if v != "config_files"
-                else [tmp_config.name]
-                )
+        shim = lambda v: constants.CLI_DEFAULTS[v] if v != "config_files" else [tmp_config.name]
         mock_flag_default.side_effect = shim
 
         namespace = self.parse(["certonly"])
@@ -164,8 +146,6 @@ class ParseTest(unittest.TestCase):  # pylint: disable=too-many-public-methods
         self.assertTrue("--cert-path" in out)
         self.assertTrue("--key-path" in out)
         self.assertTrue("--reason" in out)
-        self.assertTrue("--delete-after-revoke" in out)
-        self.assertTrue("--no-delete-after-revoke" in out)
 
         out = self._help_output(['-h', 'config_changes'])
         self.assertTrue("--cert-path" not in out)
@@ -396,44 +376,11 @@ class ParseTest(unittest.TestCase):  # pylint: disable=too-many-public-methods
         namespace = self.parse(["--max-log-backups", value])
         self.assertEqual(namespace.max_log_backups, int(value))
 
-    def test_unchanging_defaults(self):
-        namespace = self.parse([])
-        self.assertEqual(namespace.domains, [])
-        self.assertEqual(namespace.pref_challs, [])
-
-        namespace.pref_challs = [challenges.HTTP01.typ]
-        namespace.domains = ['example.com']
-
-        namespace = self.parse([])
-        self.assertEqual(namespace.domains, [])
-        self.assertEqual(namespace.pref_challs, [])
-
-    def test_no_directory_hooks_set(self):
-        self.assertFalse(self.parse(["--no-directory-hooks"]).directory_hooks)
-
-    def test_no_directory_hooks_unset(self):
-        self.assertTrue(self.parse([]).directory_hooks)
-
-    def test_delete_after_revoke(self):
-        namespace = self.parse(["--delete-after-revoke"])
-        self.assertTrue(namespace.delete_after_revoke)
-
-    def test_delete_after_revoke_default(self):
-        namespace = self.parse([])
-        self.assertEqual(namespace.delete_after_revoke, None)
-
-    def test_no_delete_after_revoke(self):
-        namespace = self.parse(["--no-delete-after-revoke"])
-        self.assertFalse(namespace.delete_after_revoke)
-
-    def test_allow_subset_with_wildcard(self):
-        self.assertRaises(errors.Error, self.parse,
-                          "--allow-subset-of-names -d *.example.org".split())
-
 
 class DefaultTest(unittest.TestCase):
     """Tests for certbot.cli._Default."""
 
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         # pylint: disable=protected-access
@@ -454,13 +401,10 @@ class DefaultTest(unittest.TestCase):
 class SetByCliTest(unittest.TestCase):
     """Tests for certbot.set_by_cli and related functions."""
 
+    _multiprocess_can_split_ = True
 
     def setUp(self):
         reload_module(cli)
-
-    def test_deploy_hook(self):
-        self.assertTrue(_call_set_by_cli(
-            'renew_hook', '--deploy-hook foo'.split(), 'renew'))
 
     def test_webroot_map(self):
         args = '-w /var/www/html -d example.com'.split()
@@ -506,10 +450,9 @@ class SetByCliTest(unittest.TestCase):
 
 def _call_set_by_cli(var, args, verb):
     with mock.patch('certbot.cli.helpful_parser') as mock_parser:
-        with test_util.patch_get_utility():
-            mock_parser.args = args
-            mock_parser.verb = verb
-            return cli.set_by_cli(var)
+        mock_parser.args = args
+        mock_parser.verb = verb
+        return cli.set_by_cli(var)
 
 
 if __name__ == '__main__':

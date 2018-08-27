@@ -6,18 +6,20 @@ import shutil
 import stat
 import unittest
 
-import josepy as jose
 import mock
 import pytz
 
+from acme import jose
 from acme import messages
 
 from certbot import errors
 
-import certbot.tests.util as test_util
+from certbot.tests import util
+
+from certbot.tests.util import TempDirTestCase
 
 
-KEY = jose.JWKRSA.load(test_util.load_vector("rsa512_key.pem"))
+KEY = jose.JWKRSA.load(util.load_vector("rsa512_key_2.pem"))
 
 
 class AccountTest(unittest.TestCase):
@@ -46,18 +48,21 @@ class AccountTest(unittest.TestCase):
 
     def test_id(self):
         self.assertEqual(
-            self.acc.id, "7adac10320f585ddf118429c0c4af2cd")
+            self.acc.id, "bca5889f66457d5b62fbba7b25f9ab6f")
 
     def test_slug(self):
         self.assertEqual(
-            self.acc.slug, "test.certbot.org@2015-07-04T14:04:10Z (7ada)")
+            self.acc.slug, "test.certbot.org@2015-07-04T14:04:10Z (bca5)")
 
     def test_repr(self):
         self.assertTrue(repr(self.acc).startswith(
-          "<Account(i_am_a_regr, 7adac10320f585ddf118429c0c4af2cd, Meta("))
+          "<Account(i_am_a_regr, bca5889f66457d5b62fbba7b25f9ab6f, Meta("))
 
-class ReportNewAccountTest(test_util.ConfigTestCase):
+class ReportNewAccountTest(unittest.TestCase):
     """Tests for certbot.account.report_new_account."""
+
+    def setUp(self):
+        self.config = mock.MagicMock(config_dir="/etc/letsencrypt")
 
     def _call(self):
         from certbot.account import report_new_account
@@ -93,12 +98,14 @@ class AccountMemoryStorageTest(unittest.TestCase):
         self.assertEqual([account], self.storage.find_all())
 
 
-class AccountFileStorageTest(test_util.ConfigTestCase):
+class AccountFileStorageTest(TempDirTestCase):
     """Tests for certbot.account.AccountFileStorage."""
 
     def setUp(self):
         super(AccountFileStorageTest, self).setUp()
 
+        self.config = mock.MagicMock(
+            accounts_dir=os.path.join(self.tempdir, "accounts"))
         from certbot.account import AccountFileStorage
         self.storage = AccountFileStorage(self.config)
 

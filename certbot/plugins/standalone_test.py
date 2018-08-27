@@ -3,11 +3,11 @@ import argparse
 import socket
 import unittest
 
-import josepy as jose
 import mock
 import six
 
 from acme import challenges
+from acme import jose
 
 from certbot import achallenges
 from certbot import errors
@@ -158,11 +158,10 @@ class AuthenticatorTest(unittest.TestCase):
 
     @test_util.patch_get_utility()
     def test_perform_eaddrinuse_retry(self, mock_get_utility):
-        mock_utility = mock_get_utility()
         errno = socket.errno.EADDRINUSE
         error = errors.StandaloneBindError(mock.MagicMock(errno=errno), -1)
         self.auth.servers.run.side_effect = [error] + 2 * [mock.MagicMock()]
-        mock_yesno = mock_utility.yesno
+        mock_yesno = mock_get_utility.return_value.yesno
         mock_yesno.return_value = True
 
         self.test_perform()
@@ -170,8 +169,7 @@ class AuthenticatorTest(unittest.TestCase):
 
     @test_util.patch_get_utility()
     def test_perform_eaddrinuse_no_retry(self, mock_get_utility):
-        mock_utility = mock_get_utility()
-        mock_yesno = mock_utility.yesno
+        mock_yesno = mock_get_utility.return_value.yesno
         mock_yesno.return_value = False
 
         errno = socket.errno.EADDRINUSE

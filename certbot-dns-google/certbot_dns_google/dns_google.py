@@ -2,7 +2,6 @@
 import json
 import logging
 
-import httplib2
 import zope.interface
 from googleapiclient import discovery
 from googleapiclient import errors as googleapiclient_errors
@@ -16,8 +15,6 @@ logger = logging.getLogger(__name__)
 
 ACCT_URL = 'https://developers.google.com/identity/protocols/OAuth2ServiceAccount#creatinganaccount'
 PERMISSIONS_URL = 'https://cloud.google.com/dns/access-control#permissions_and_roles'
-METADATA_URL = 'http://metadata.google.internal/computeMetadata/v1/'
-METADATA_HEADERS = {'Metadata-Flavor': 'Google'}
 
 
 @zope.interface.implementer(interfaces.IAuthenticator)
@@ -42,29 +39,16 @@ class Authenticator(dns_common.DNSAuthenticator):
         add('credentials',
             help=('Path to Google Cloud DNS service account JSON file. (See {0} for' +
                   'information about creating a service account and {1} for information about the' +
-                  'required permissions.)').format(ACCT_URL, PERMISSIONS_URL),
-            default=None)
+                  'required permissions.)').format(ACCT_URL, PERMISSIONS_URL))
 
     def more_info(self): # pylint: disable=missing-docstring,no-self-use
         return 'This plugin configures a DNS TXT record to respond to a dns-01 challenge using ' + \
                'the Google Cloud DNS API.'
 
     def _setup_credentials(self):
-        if self.conf('credentials') is None:
-            try:
-                # use project_id query to check for availability of google metadata server
-                # we won't use the result but know we're not on GCP when an exception is thrown
-                _GoogleClient.get_project_id()
-            except (ValueError, httplib2.ServerNotFoundError):
-                raise errors.PluginError('Unable to get Google Cloud Metadata and no credentials'
-                                         ' specified. Automatic credential lookup is only '
-                                         'available on Google Cloud Platform. Please configure'
-                                         ' credentials using --dns-google-credentials <file>')
-        else:
-            self._configure_file('credentials',
-                                 'path to Google Cloud DNS service account JSON file')
+        self._configure_file('credentials', 'path to Google Cloud DNS service account JSON file')
 
-            dns_common.validate_file_permissions(self.conf('credentials'))
+        dns_common.validate_file_permissions(self.conf('credentials'))
 
     def _perform(self, domain, validation_name, validation):
         self._get_google_client().add_txt_record(domain, validation_name, validation, self.ttl)
@@ -81,18 +65,13 @@ class _GoogleClient(object):
     Encapsulates all communication with the Google Cloud DNS API.
     """
 
-    def __init__(self, account_json=None):
+    def __init__(self, account_json):
 
         scopes = ['https://www.googleapis.com/auth/ndev.clouddns.readwrite']
-        if account_json is not None:
-            credentials = ServiceAccountCredentials.from_json_keyfile_name(account_json, scopes)
-            with open(account_json) as account:
-                self.project_id = json.load(account)['project_id']
-        else:
-            credentials = None
-            self.project_id = self.get_project_id()
-
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(account_json, scopes)
         self.dns = discovery.build('dns', 'v1', credentials=credentials, cache_discovery=False)
+        with open(account_json) as account:
+            self.project_id = json.load(account)['project_id']
 
     def add_txt_record(self, domain, record_name, record_content, record_ttl):
         """
@@ -107,15 +86,6 @@ class _GoogleClient(object):
 
         zone_id = self._find_managed_zone_id(domain)
 
-        record_contents = self.get_existing_txt_rrset(zone_id, record_name)
-        add_records = record_contents[:]
-
-        if "\""+record_content+"\"" in record_contents:
-            # The process was interrupted previously and validation token exists
-            return
-
-        add_records.append(record_content)
-
         data = {
             "kind": "dns#change",
             "additions": [
@@ -123,23 +93,11 @@ class _GoogleClient(object):
                     "kind": "dns#resourceRecordSet",
                     "type": "TXT",
                     "name": record_name + ".",
-                    "rrdatas": add_records,
+                    "rrdatas": [record_content, ],
                     "ttl": record_ttl,
                 },
             ],
         }
-
-        if record_contents:
-            # We need to remove old records in the same request
-            data["deletions"] = [
-                {
-                    "kind": "dns#resourceRecordSet",
-                    "type": "TXT",
-                    "name": record_name + ".",
-                    "rrdatas": record_contents,
-                    "ttl": record_ttl,
-                },
-            ]
 
         changes = self.dns.changes()  # changes | pylint: disable=no-member
 
@@ -175,8 +133,6 @@ class _GoogleClient(object):
             logger.warn('Error finding zone. Skipping cleanup.')
             return
 
-        record_contents = self.get_existing_txt_rrset(zone_id, record_name)
-
         data = {
             "kind": "dns#change",
             "deletions": [
@@ -184,25 +140,11 @@ class _GoogleClient(object):
                     "kind": "dns#resourceRecordSet",
                     "type": "TXT",
                     "name": record_name + ".",
-                    "rrdatas": record_contents,
+                    "rrdatas": [record_content, ],
                     "ttl": record_ttl,
                 },
             ],
         }
-
-        # Remove the record being deleted from the list
-        readd_contents = [r for r in record_contents if r != "\"" + record_content + "\""]
-        if readd_contents:
-            # We need to remove old records in the same request
-            data["additions"] = [
-                {
-                    "kind": "dns#resourceRecordSet",
-                    "type": "TXT",
-                    "name": record_name + ".",
-                    "rrdatas": readd_contents,
-                    "ttl": record_ttl,
-                },
-            ]
 
         changes = self.dns.changes()  # changes | pylint: disable=no-member
 
@@ -211,28 +153,6 @@ class _GoogleClient(object):
             request.execute()
         except googleapiclient_errors.Error as e:
             logger.warn('Encountered error deleting TXT record: %s', e)
-
-    def get_existing_txt_rrset(self, zone_id, record_name):
-        """
-        Get existing TXT records from the RRset for the record name.
-
-        :param str zone_id: The ID of the managed zone.
-        :param str record_name: The record name (typically beginning with '_acme-challenge.').
-
-        :returns: List of TXT record values
-        :rtype: `list` of `string`
-
-        """
-        rrs_request = self.dns.resourceRecordSets()  # pylint: disable=no-member
-        request = rrs_request.list(managedZone=zone_id, project=self.project_id)
-        response = request.execute()
-        # Add dot as the API returns absolute domains
-        record_name += "."
-        if response:
-            for rr in response["rrsets"]:
-                if rr["name"] == record_name and rr["type"] == "TXT":
-                    return rr["rrdatas"]
-        return []
 
     def _find_managed_zone_id(self, domain):
         """
@@ -263,27 +183,3 @@ class _GoogleClient(object):
 
         raise errors.PluginError('Unable to determine managed zone for {0} using zone names: {1}.'
                                  .format(domain, zone_dns_name_guesses))
-
-    @staticmethod
-    def get_project_id():
-        """
-        Query the google metadata service for the current project ID
-
-        This only works on Google Cloud Platform
-
-        :raises ServerNotFoundError: Not running on Google Compute or DNS not available
-        :raises ValueError: Server is found, but response code is not 200
-        :returns: project id
-        """
-        url = '{0}project/project-id'.format(METADATA_URL)
-
-        # Request an access token from the metadata server.
-        http = httplib2.Http()
-        r, content = http.request(url, headers=METADATA_HEADERS)
-        if r.status != 200:
-            raise ValueError("Invalid status code: {0}".format(r))
-
-        if isinstance(content, bytes):
-            return content.decode()
-        else:
-            return content

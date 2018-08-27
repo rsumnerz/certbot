@@ -4,28 +4,34 @@ from setuptools import setup
 from setuptools import find_packages
 
 
-version = '0.22.0.dev0'
+version = '0.17.0.dev0'
 
 # Please update tox.ini when modifying dependency version requirements
 install_requires = [
     # load_pem_private/public_key (>=0.6)
     # rsa_recover_prime_factors (>=0.8)
     'cryptography>=0.8',
-    # formerly known as acme.jose:
-    'josepy>=1.0.0',
     # Connection.set_tlsext_host_name (>=0.13)
     'mock',
     'PyOpenSSL>=0.13',
     'pyrfc3339',
     'pytz',
     'requests[security]>=2.4.1',  # security extras added in 2.4.1
-    'setuptools',
-    'six>=1.9.0',  # needed for python_2_unicode_compatible
+    # For pkg_resources. >=1.0 so pip resolves it to a version cryptography
+    # will tolerate; see #2599:
+    'setuptools>=1.0',
+    'six',
 ]
 
+# env markers cause problems with older pip and setuptools
+if sys.version_info < (2, 7):
+    install_requires.extend([
+        'argparse',
+        'ordereddict',
+    ])
+
 dev_extras = [
-    'pytest',
-    'pytest-xdist',
+    'nose',
     'tox',
 ]
 
@@ -43,15 +49,16 @@ setup(
     author="Certbot Project",
     author_email='client-dev@letsencrypt.org',
     license='Apache License 2.0',
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
@@ -65,6 +72,11 @@ setup(
     extras_require={
         'dev': dev_extras,
         'docs': docs_extras,
+    },
+    entry_points={
+        'console_scripts': [
+            'jws = acme.jose.jws:CLI.run',
+        ],
     },
     test_suite='acme',
 )

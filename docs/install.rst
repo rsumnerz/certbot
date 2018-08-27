@@ -22,7 +22,7 @@ your system.
 System Requirements
 ===================
 
-Certbot currently requires Python 2.7, or 3.4+. By default, it requires
+Certbot currently requires Python 2.6, 2.7, or 3.3+. By default, it requires
 root access in order to write to ``/etc/letsencrypt``,
 ``/var/log/letsencrypt``, ``/var/lib/letsencrypt``; to bind to ports 80 and 443
 (if you use the ``standalone`` plugin) and to read and modify webserver
@@ -30,7 +30,7 @@ configurations (if you use the ``apache`` or ``nginx`` plugins).  If none of
 these apply to you, it is theoretically possible to run without root privileges,
 but for most users who want to avoid running an ACME client as root, either
 `letsencrypt-nosudo <https://github.com/diafygi/letsencrypt-nosudo>`_ or
-`simp_le <https://github.com/zenhack/simp_le>`_ are more appropriate choices.
+`simp_le <https://github.com/kuba/simp_le>`_ are more appropriate choices.
 
 The Apache plugin currently requires an OS with augeas version 1.0; currently `it
 supports
@@ -80,7 +80,7 @@ For full command line help, you can type::
 Problems with Python virtual environment
 ----------------------------------------
 
-On a low memory system such as VPS with less than 512MB of RAM, the required dependencies of Certbot will fail to build.
+On a low memory system such as VPS with less than 512MB of RAM, the required dependencies of Certbot will failed to build.
 This can be identified if the pip outputs contains something like ``internal compiler error: Killed (program cc1)``.
 You can workaround this restriction by creating a temporary swapfile::
 
@@ -116,7 +116,7 @@ certbot-auto_ method, which enables you to use installer plugins
 that cover both of those hard topics.
 
 If you're still not convinced and have decided to use this method,
-from the server that the domain you're requesting a certficate for resolves
+from the server that the domain you're requesting a cert for resolves
 to, `install Docker`_, then issue the following command:
 
 .. code-block:: shell
@@ -156,7 +156,7 @@ If you run Debian Stretch or Debian Sid, you can install certbot packages.
    sudo apt-get install certbot python-certbot-apache
 
 If you don't want to use the Apache plugin, you can omit the
-``python-certbot-apache`` package. Or you can install ``python-certbot-nginx`` instead.
+``python-certbot-apache`` package.
 
 Packages exist for Debian Jessie via backports. First you'll have to follow the
 instructions at http://backports.debian.org/Instructions/ to enable the Jessie backports
@@ -234,10 +234,11 @@ Installing from source
 Installation from source is only supported for developers and the
 whole process is described in the :doc:`contributing`.
 
-.. warning:: Please do **not** use ``python setup.py install``, ``python pip
-   install .``, or ``easy_install .``. Please do **not** attempt the
-   installation commands as superuser/root and/or without virtual environment,
-   e.g. ``sudo python setup.py install``, ``sudo pip install``, ``sudo
-   ./venv/bin/...``. These modes of operation might corrupt your operating
-   system and are **not supported** by the Certbot team!
+.. warning:: Please do **not** use ``python setup.py install`` or
+   ``python pip install .``. Please do **not** attempt the
+   installation commands as superuser/root and/or without virtual
+   environment, e.g. ``sudo python setup.py install``, ``sudo pip
+   install``, ``sudo ./venv/bin/...``. These modes of operation might
+   corrupt your operating system and are **not supported** by the
+   Certbot team!
 

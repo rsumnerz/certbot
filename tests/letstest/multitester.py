@@ -38,7 +38,6 @@ from multiprocessing import Manager
 import urllib2
 import yaml
 import boto3
-from botocore.exceptions import ClientError
 import fabric
 from fabric.api import run, execute, local, env, sudo, cd, lcd
 from fabric.operations import get, put
@@ -142,7 +141,7 @@ def make_instance(instance_name,
     # give instance a name
     try:
         new_instance.create_tags(Tags=[{'Key': 'Name', 'Value': instance_name}])
-    except ClientError as e:
+    except botocore.exceptions.ClientError as e:
         if "InvalidInstanceID.NotFound" in str(e):
             # This seems to be ephemeral... retry
             time.sleep(1)

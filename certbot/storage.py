@@ -49,21 +49,6 @@ def renewal_file_for_certname(config, certname):
             "{1}).".format(certname, path))
     return path
 
-
-def cert_path_for_cert_name(config, cert_name):
-    """ If `--cert-name` was specified, but you need a value for `--cert-path`.
-
-    :param `configuration.NamespaceConfig` config: parsed command line arguments
-    :param str cert_name: cert name.
-
-    """
-    cert_name_implied_conf = renewal_file_for_certname(config, cert_name)
-    fullchain_path = configobj.ConfigObj(cert_name_implied_conf)["fullchain"]
-    with open(fullchain_path) as f:
-        cert_path = (fullchain_path, f.read())
-    return cert_path
-
-
 def config_with_defaults(config=None):
     """Merge supplied config, if provided, on top of builtin defaults."""
     defaults_copy = configobj.ConfigObj(constants.RENEWER_DEFAULTS)
@@ -261,7 +246,7 @@ def _relpath_from_file(archive_dir, from_file):
     """Path to a directory from a file"""
     return os.path.relpath(archive_dir, os.path.dirname(from_file))
 
-def full_archive_path(config_obj, cli_config, lineagename):
+def _full_archive_path(config_obj, cli_config, lineagename):
     """Returns the full archive path for a lineagename
 
     Uses cli_config to determine archive path if not available from config_obj.
@@ -286,7 +271,7 @@ def delete_files(config, certname):
     """
     renewal_filename = renewal_file_for_certname(config, certname)
     # file exists
-    full_default_archive_dir = full_archive_path(None, config, certname)
+    full_default_archive_dir = _full_archive_path(None, config, certname)
     full_default_live_dir = _full_live_path(config, certname)
     try:
         renewal_config = configobj.ConfigObj(renewal_filename)
@@ -338,7 +323,7 @@ def delete_files(config, certname):
 
     # archive directory
     try:
-        archive_path = full_archive_path(renewal_config, config, certname)
+        archive_path = _full_archive_path(renewal_config, config, certname)
         shutil.rmtree(archive_path)
         logger.debug("Removed %s", archive_path)
     except OSError:
@@ -417,7 +402,7 @@ class RenewableCert(object):
         conf_version = self.configuration.get("version")
         if (conf_version is not None and
                 util.get_strict_version(conf_version) > CURRENT_VERSION):
-            logger.info(
+            logger.warning(
                 "Attempting to parse the version %s renewal configuration "
                 "file found at %s with version %s of Certbot. This might not "
                 "work.", conf_version, config_filename, certbot.__version__)
@@ -465,7 +450,7 @@ class RenewableCert(object):
     @property
     def archive_dir(self):
         """Returns the default or specified archive directory"""
-        return full_archive_path(self.configuration,
+        return _full_archive_path(self.configuration,
             self.cli_config, self.lineagename)
 
     def relative_archive_dir(self, from_file):
@@ -1007,7 +992,7 @@ class RenewableCert(object):
         # lineagename will now potentially be modified based on which
         # renewal configuration file could actually be created
         lineagename = lineagename_for_filename(config_filename)
-        archive = full_archive_path(None, cli_config, lineagename)
+        archive = _full_archive_path(None, cli_config, lineagename)
         live_dir = _full_live_path(cli_config, lineagename)
         if os.path.exists(archive):
             raise errors.CertStorageError(

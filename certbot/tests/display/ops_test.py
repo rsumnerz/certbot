@@ -4,10 +4,10 @@ import os
 import sys
 import unittest
 
-import josepy as jose
 import mock
 import zope.component
 
+from acme import jose
 from acme import messages
 
 from certbot import account
@@ -300,8 +300,8 @@ class ChooseNamesTest(unittest.TestCase):
         from certbot.display.ops import get_valid_domains
         all_valid = ["example.com", "second.example.com",
                      "also.example.com", "under_score.example.com",
-                     "justtld", "*.wildcard.com"]
-        all_invalid = ["öóòps.net", "uniçodé.com"]
+                     "justtld"]
+        all_invalid = ["öóòps.net", "*.wildcard.com", "uniçodé.com"]
         two_valid = ["example.com", "úniçøde.com", "also.example.com"]
         self.assertEqual(get_valid_domains(all_valid), all_valid)
         self.assertEqual(get_valid_domains(all_invalid), [])
@@ -310,11 +310,10 @@ class ChooseNamesTest(unittest.TestCase):
     @test_util.patch_get_utility("certbot.display.ops.z_util")
     def test_choose_manually(self, mock_util):
         from certbot.display.ops import _choose_names_manually
-        utility_mock = mock_util()
         # No retry
-        utility_mock.yesno.return_value = False
+        mock_util().yesno.return_value = False
         # IDN and no retry
-        utility_mock.input.return_value = (display_util.OK,
+        mock_util().input.return_value = (display_util.OK,
                                           "uniçodé.com")
         self.assertEqual(_choose_names_manually(), [])
         # IDN exception with previous mocks
@@ -325,7 +324,7 @@ class ChooseNamesTest(unittest.TestCase):
             mock_sli.side_effect = unicode_error
             self.assertEqual(_choose_names_manually(), [])
         # Valid domains
-        utility_mock.input.return_value = (display_util.OK,
+        mock_util().input.return_value = (display_util.OK,
                                           ("example.com,"
                                            "under_score.example.com,"
                                            "justtld,"
@@ -333,17 +332,14 @@ class ChooseNamesTest(unittest.TestCase):
         self.assertEqual(_choose_names_manually(),
                          ["example.com", "under_score.example.com",
                           "justtld", "valid.example.com"])
-
-    @test_util.patch_get_utility("certbot.display.ops.z_util")
-    def test_choose_manually_retry(self, mock_util):
-        from certbot.display.ops import _choose_names_manually
-        utility_mock = mock_util()
         # Three iterations
-        utility_mock.input.return_value = (display_util.OK,
+        mock_util().input.return_value = (display_util.OK,
                                           "uniçodé.com")
-        utility_mock.yesno.side_effect = [True, True, False]
+        yn = mock.MagicMock()
+        yn.side_effect = [True, True, False]
+        mock_util().yesno = yn
         _choose_names_manually()
-        self.assertEqual(utility_mock.yesno.call_count, 3)
+        self.assertEqual(mock_util().yesno.call_count, 3)
 
 
 class SuccessInstallationTest(unittest.TestCase):

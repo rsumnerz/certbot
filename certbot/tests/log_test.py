@@ -55,7 +55,7 @@ class PreArgParseSetupTest(unittest.TestCase):
             memory_handler, 1, 2, 3, debug=True, log_path=mock.ANY)
 
 
-class PostArgParseSetupTest(test_util.ConfigTestCase):
+class PostArgParseSetupTest(test_util.TempDirTestCase):
     """Tests for certbot.log.post_arg_parse_setup."""
 
     @classmethod
@@ -65,10 +65,9 @@ class PostArgParseSetupTest(test_util.ConfigTestCase):
 
     def setUp(self):
         super(PostArgParseSetupTest, self).setUp()
-        self.config.debug = False
-        self.config.max_log_backups = 1000
-        self.config.quiet = False
-        self.config.verbose_count = constants.CLI_DEFAULTS['verbose_count']
+        self.config = mock.MagicMock(
+            debug=False, logs_dir=self.tempdir, max_log_backups=1000,
+            quiet=False, verbose_count=constants.CLI_DEFAULTS['verbose_count'])
         self.devnull = open(os.devnull, 'w')
 
         from certbot.log import ColoredStreamHandler
@@ -103,7 +102,7 @@ class PostArgParseSetupTest(test_util.ConfigTestCase):
         self.assertFalse(os.path.exists(self.temp_path))
         mock_sys.excepthook(1, 2, 3)
         mock_except_hook.assert_called_once_with(
-            1, 2, 3, debug=self.config.debug, log_path=self.config.logs_dir)
+            1, 2, 3, debug=self.config.debug, log_path=self.tempdir)
 
         level = self.stream_handler.level
         if self.config.quiet:
@@ -120,7 +119,7 @@ class PostArgParseSetupTest(test_util.ConfigTestCase):
         self.test_common()
 
 
-class SetupLogFileHandlerTest(test_util.ConfigTestCase):
+class SetupLogFileHandlerTest(test_util.TempDirTestCase):
     """Tests for certbot.log.setup_log_file_handler."""
 
     @classmethod
@@ -130,7 +129,7 @@ class SetupLogFileHandlerTest(test_util.ConfigTestCase):
 
     def setUp(self):
         super(SetupLogFileHandlerTest, self).setUp()
-        self.config.max_log_backups = 42
+        self.config = mock.MagicMock(logs_dir=self.tempdir, max_log_backups=42)
 
     @mock.patch('certbot.main.logging.handlers.RotatingFileHandler')
     def test_failure(self, mock_handler):
@@ -343,17 +342,11 @@ class PostArgParseExceptHookTest(unittest.TestCase):
     def _test_common(self, error_type, debug):
         """Returns the mocked logger and stderr output."""
         mock_err = six.StringIO()
-
-        def write_err(*args, **unused_kwargs):
-            """Write error to mock_err."""
-            mock_err.write(args[0])
-
         try:
             raise error_type(self.error_msg)
         except BaseException:
             exc_info = sys.exc_info()
             with mock.patch('certbot.log.logger') as mock_logger:
-                mock_logger.error.side_effect = write_err
                 with mock.patch('certbot.log.sys.stderr', mock_err):
                     try:
                         # pylint: disable=star-args

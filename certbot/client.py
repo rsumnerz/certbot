@@ -1,18 +1,17 @@
 """Certbot client API."""
-import datetime
 import logging
 import os
 import platform
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-import josepy as jose
 import OpenSSL
 import zope.component
 
 from acme import client as acme_client
 from acme import crypto_util as acme_crypto_util
 from acme import errors as acme_errors
+from acme import jose
 from acme import messages
 
 import certbot
@@ -38,12 +37,12 @@ from certbot.plugins import selection as plugin_selection
 logger = logging.getLogger(__name__)
 
 
-def acme_from_config_key(config, key, regr=None):
+def acme_from_config_key(config, key):
     "Wrangle ACME client construction"
     # TODO: Allow for other alg types besides RS256
-    net = acme_client.ClientNetwork(key, account=regr, verify_ssl=(not config.no_verify_ssl),
+    net = acme_client.ClientNetwork(key, verify_ssl=(not config.no_verify_ssl),
                                     user_agent=determine_user_agent(config))
-    return acme_client.BackwardsCompatibleClientV2(net, key, config.server)
+    return acme_client.Client(config.server, key=key, net=net)
 
 
 def determine_user_agent(config):
@@ -59,12 +58,11 @@ def determine_user_agent(config):
     # policy, talk to a core Certbot team member before making any
     # changes here.
     if config.user_agent is None:
-        ua = ("CertbotACMEClient/{0} ({1}; {2}{8}) Authenticator/{3} Installer/{4} "
+        ua = ("CertbotACMEClient/{0} ({1}; {2}) Authenticator/{3} Installer/{4} "
               "({5}; flags: {6}) Py/{7}")
         ua = ua.format(certbot.__version__, cli.cli_command, util.get_os_info_ua(),
                        config.authenticator, config.installer, config.verb,
-                       ua_flags(config), platform.python_version(),
-                       "; " + config.user_agent_comment if config.user_agent_comment else "")
+                       ua_flags(config), platform.python_version())
     else:
         ua = config.user_agent
     return ua
@@ -163,7 +161,14 @@ def register(config, account_storage, tos_cb=None):
             backend=default_backend())))
     acme = acme_from_config_key(config, key)
     # TODO: add phone?
-    regr = perform_registration(acme, config, tos_cb)
+    regr = perform_registration(acme, config)
+
+    if regr.terms_of_service is not None:
+        if tos_cb is not None and not tos_cb(regr):
+            raise errors.Error(
+                "Registration cannot proceed without accepting "
+                "Terms of Service.")
+        regr = acme.agree_to_tos(regr)
 
     acc = account.Account(regr, key)
     account.report_new_account(config)
@@ -174,7 +179,7 @@ def register(config, account_storage, tos_cb=None):
     return acc, acme
 
 
-def perform_registration(acme, config, tos_cb):
+def perform_registration(acme, config):
     """
     Actually register new account, trying repeatedly if there are email
     problems
@@ -186,8 +191,7 @@ def perform_registration(acme, config, tos_cb):
     :rtype: `acme.messages.RegistrationResource`
     """
     try:
-        return acme.new_account_and_tos(messages.NewRegistration.from_data(email=config.email),
-            tos_cb)
+        return acme.register(messages.NewRegistration.from_data(email=config.email))
     except messages.Error as e:
         if e.code == "invalidEmail" or e.code == "invalidContact":
             if config.noninteractive_mode:
@@ -197,7 +201,7 @@ def perform_registration(acme, config, tos_cb):
                 raise errors.Error(msg)
             else:
                 config.email = display_ops.get_email(invalid=True)
-                return perform_registration(acme, config, tos_cb)
+                return perform_registration(acme, config)
         else:
             raise
 
@@ -213,8 +217,8 @@ class Client(object):
     :ivar .IAuthenticator auth: Prepared (`.IAuthenticator.prepare`)
         authenticator that can solve ACME challenges.
     :ivar .IInstaller installer: Installer.
-    :ivar acme.client.BackwardsCompatibleClientV2 acme: Optional ACME
-        client API handle. You might already have one from `register`.
+    :ivar acme.client.Client acme: Optional ACME client API handle.
+       You might already have one from `register`.
 
     """
 
@@ -227,7 +231,7 @@ class Client(object):
 
         # Initialize ACME if account is provided
         if acme is None and self.account is not None:
-            acme = acme_from_config_key(config, self.account.key, self.account.regr)
+            acme = acme_from_config_key(config, self.account.key)
         self.acme = acme
 
         if auth is not None:
@@ -236,15 +240,21 @@ class Client(object):
         else:
             self.auth_handler = None
 
-    def obtain_certificate_from_csr(self, csr, orderr=None):
+    def obtain_certificate_from_csr(self, domains, csr, authzr=None):
         """Obtain certificate.
 
+        Internal function with precondition that `domains` are
+        consistent with identifiers present in the `csr`.
+
+        :param list domains: Domain names.
         :param .util.CSR csr: PEM-encoded Certificate Signing
             Request. The key used to generate this CSR can be different
             than `authkey`.
-        :param acme.messages.OrderResource orderr: contains authzrs
+        :param list authzr: List of
+            :class:`acme.messages.AuthorizationResource`
 
-        :returns: certificate and chain as PEM byte strings
+        :returns: `.CertificateResource` and certificate chain (as
+            returned by `.fetch_chain`).
         :rtype: tuple
 
         """
@@ -256,15 +266,37 @@ class Client(object):
         if self.account.regr is None:
             raise errors.Error("Please register with the ACME server first.")
 
-        logger.debug("CSR: %s", csr)
+        logger.debug("CSR: %s, domains: %s", csr, domains)
 
-        if orderr is None:
-            orderr = self._get_order_and_authorizations(csr.data, best_effort=False)
+        if authzr is None:
+            authzr = self.auth_handler.get_authorizations(domains)
 
-        deadline = datetime.datetime.now() + datetime.timedelta(seconds=90)
-        orderr = self.acme.finalize_order(orderr, deadline)
-        cert, chain = crypto_util.cert_and_chain_from_fullchain(orderr.fullchain_pem)
-        return cert.encode(), chain.encode()
+        certr = self.acme.request_issuance(
+            jose.ComparableX509(
+                OpenSSL.crypto.load_certificate_request(OpenSSL.crypto.FILETYPE_PEM, csr.data)),
+                authzr)
+
+        notify = zope.component.getUtility(interfaces.IDisplay).notification
+        retries = 0
+        chain = None
+
+        while retries <= 1:
+            if retries:
+                notify('Failed to fetch chain, please check your network '
+                       'and continue', pause=True)
+            try:
+                chain = self.acme.fetch_chain(certr)
+                break
+            except acme_errors.Error:
+                logger.debug('Failed to fetch chain', exc_info=True)
+                retries += 1
+
+        if chain is None:
+            raise acme_errors.Error(
+                'Failed to fetch chain. You should not deploy the generated '
+                'certificate, please rerun the command for a new one.')
+
+        return certr, chain
 
     def obtain_certificate(self, domains):
         """Obtains a certificate from the ACME server.
@@ -273,12 +305,20 @@ class Client(object):
 
         :param list domains: domains to get a certificate
 
-        :returns: certificate as PEM string, chain as PEM string,
-            newly generated private key (`.util.Key`), and DER-encoded
-            Certificate Signing Request (`.util.CSR`).
+        :returns: `.CertificateResource`, certificate chain (as
+            returned by `.fetch_chain`), and newly generated private key
+            (`.util.Key`) and DER-encoded Certificate Signing Request
+            (`.util.CSR`).
         :rtype: tuple
 
         """
+        authzr = self.auth_handler.get_authorizations(
+                domains,
+                self.config.allow_subset_of_names)
+
+        auth_domains = set(a.body.identifier.value for a in authzr)
+        domains = [d for d in domains if d in auth_domains]
+
         # Create CSR from names
         if self.config.dry_run:
             key = util.Key(file=None,
@@ -291,44 +331,10 @@ class Client(object):
                 self.config.rsa_key_size, self.config.key_dir)
             csr = crypto_util.init_save_csr(key, domains, self.config.csr_dir)
 
-        orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
-        authzr = orderr.authorizations
-        auth_domains = set(a.body.identifier.value for a in authzr)
-        successful_domains = [d for d in domains if d in auth_domains]
+        certr, chain = self.obtain_certificate_from_csr(
+            domains, csr, authzr=authzr)
 
-        # allow_subset_of_names is currently disabled for wildcard
-        # certificates. The reason for this and checking allow_subset_of_names
-        # below is because successful_domains == domains is never true if
-        # domains contains a wildcard because the ACME spec forbids identifiers
-        # in authzs from containing a wildcard character.
-        if self.config.allow_subset_of_names and successful_domains != domains:
-            if not self.config.dry_run:
-                os.remove(key.file)
-                os.remove(csr.file)
-            return self.obtain_certificate(successful_domains)
-        else:
-            cert, chain = self.obtain_certificate_from_csr(csr, orderr)
-
-            return cert, chain, key, csr
-
-    def _get_order_and_authorizations(self, csr_pem, best_effort):
-        """Request a new order and complete its authorizations.
-
-        :param str csr_pem: A CSR in PEM format.
-        :param bool best_effort: True if failing to complete all
-            authorizations should not raise an exception
-
-        :returns: order resource containing its completed authorizations
-        :rtype: acme.messages.OrderResource
-
-        """
-        try:
-            orderr = self.acme.new_order(csr_pem)
-        except acme_errors.WildcardUnsupportedError:
-            raise errors.Error("The currently selected ACME CA endpoint does"
-                               " not support issuing wildcard certificates.")
-        authzr = self.auth_handler.handle_authorizations(orderr, best_effort)
-        return orderr.update(authorizations=authzr)
+        return certr, chain, key, csr
 
     # pylint: disable=no-member
     def obtain_and_enroll_certificate(self, domains, certname):
@@ -347,7 +353,7 @@ class Client(object):
             be obtained, or None if doing a successful dry run.
 
         """
-        cert, chain, key, _ = self.obtain_certificate(domains)
+        certr, chain, key, _ = self.obtain_certificate(domains)
 
         if (self.config.config_dir != constants.CLI_DEFAULTS["config_dir"] or
                 self.config.work_dir != constants.CLI_DEFAULTS["work_dir"]):
@@ -355,30 +361,26 @@ class Client(object):
                 "Non-standard path(s), might not work with crontab installed "
                 "by your operating system package manager")
 
-        if certname:
-            new_name = certname
-        elif util.is_wildcard_domain(domains[0]):
-            # Don't make files and directories starting with *.
-            new_name = domains[0][2:]
-        else:
-            new_name = domains[0]
-
+        new_name = certname if certname else domains[0]
         if self.config.dry_run:
             logger.debug("Dry run: Skipping creating new lineage for %s",
                         new_name)
             return None
         else:
             return storage.RenewableCert.new_lineage(
-                new_name, cert,
-                key.pem, chain,
+                new_name, OpenSSL.crypto.dump_certificate(
+                    OpenSSL.crypto.FILETYPE_PEM, certr.body.wrapped),
+                key.pem, crypto_util.dump_pyopenssl_chain(chain),
                 self.config)
 
-    def save_certificate(self, cert_pem, chain_pem,
+    def save_certificate(self, certr, chain_cert,
                          cert_path, chain_path, fullchain_path):
         """Saves the certificate received from the ACME server.
 
-        :param str cert_pem:
-        :param str chain_pem:
+        :param certr: ACME "certificate" resource.
+        :type certr: :class:`acme.messages.Certificate`
+
+        :param list chain_cert:
         :param str cert_path: Candidate path to a certificate.
         :param str chain_path: Candidate path to a certificate chain.
         :param str fullchain_path: Candidate path to a full cert chain.
@@ -395,6 +397,8 @@ class Client(object):
                 os.path.dirname(path), 0o755, os.geteuid(),
                 self.config.strict_permissions)
 
+        cert_pem = OpenSSL.crypto.dump_certificate(
+            OpenSSL.crypto.FILETYPE_PEM, certr.body.wrapped)
 
         cert_file, abs_cert_path = _open_pem_file('cert_path', cert_path)
 
@@ -405,15 +409,20 @@ class Client(object):
         logger.info("Server issued certificate; certificate written to %s",
                     abs_cert_path)
 
-        chain_file, abs_chain_path =\
-                _open_pem_file('chain_path', chain_path)
-        fullchain_file, abs_fullchain_path =\
-                _open_pem_file('fullchain_path', fullchain_path)
+        if not chain_cert:
+            return abs_cert_path, None, None
+        else:
+            chain_pem = crypto_util.dump_pyopenssl_chain(chain_cert)
 
-        _save_chain(chain_pem, chain_file)
-        _save_chain(cert_pem + chain_pem, fullchain_file)
+            chain_file, abs_chain_path =\
+                    _open_pem_file('chain_path', chain_path)
+            fullchain_file, abs_fullchain_path =\
+                    _open_pem_file('fullchain_path', fullchain_path)
 
-        return abs_cert_path, abs_chain_path, abs_fullchain_path
+            _save_chain(chain_pem, chain_file)
+            _save_chain(cert_pem + chain_pem, fullchain_file)
+
+            return abs_cert_path, abs_chain_path, abs_fullchain_path
 
     def deploy_certificate(self, domains, privkey_path,
                            cert_path, chain_path, fullchain_path):
@@ -546,11 +555,11 @@ class Client(object):
             self.installer.rollback_checkpoints()
             self.installer.restart()
         except:
+            # TODO: suggest letshelp-letsencrypt here
             reporter.add_message(
                 "An error occurred and we failed to restore your config and "
-                "restart your server. Please post to "
-                "https://community.letsencrypt.org/c/server-config "
-                "with details about your configuration and this error you received.",
+                "restart your server. Please submit a bug report to "
+                "https://github.com/letsencrypt/letsencrypt",
                 reporter.HIGH_PRIORITY)
             raise
         reporter.add_message(success_msg, reporter.HIGH_PRIORITY)

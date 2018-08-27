@@ -1,7 +1,3 @@
-# If new packages are installed by BootstrapSuseCommon below, this version
-# number must be increased.
-BOOTSTRAP_SUSE_COMMON_VERSION=1
-
 BootstrapSuseCommon() {
   # SLE12 don't have python-virtualenv
 
@@ -14,7 +10,7 @@ BootstrapSuseCommon() {
     QUIET_FLAG='-qq'
   fi
 
-  zypper $QUIET_FLAG $zypper_flags in $install_flags \
+  $SUDO zypper $QUIET_FLAG $zypper_flags in $install_flags \
     python \
     python-devel \
     python-virtualenv \

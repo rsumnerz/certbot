@@ -12,7 +12,6 @@ COPY certbot src/certbot
 RUN apk add --no-cache --virtual .certbot-deps \
         libffi \
         libssl1.0 \
-        openssl \
         ca-certificates \
         binutils
 RUN apk add --no-cache --virtual .build-deps \
