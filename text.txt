@@ -1,0 +1,8 @@
+Merge pull request #41 from dennisweissmann/misc
+
+bumps version to 0.3.4
+use 2-space indentation
+adds documentation
+
+https://github.com/rsumnerz/DeviceKit/commit/ae187f67328ee04cac51131819076dcd07b1fff2
+
