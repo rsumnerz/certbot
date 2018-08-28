@@ -1,0 +1,2908 @@
+From 1d93f1b33629ceea15e4cd0dd524958ca666213a Mon Sep 17 00:00:00 2001
+From: Robert Sumner Jr <rsumner868@gmail.com>
+Date: Mon, 27 Aug 2018 00:20:46 -0500
+Subject: [PATCH] Device.swift
+
+---
+ .gitignore                                                         |   9 +--------
+ .travis.yml                                                        |  48 ++++--------------------------------------------
+ Device.podspec                                                     |  21 +++++++++++++++++++++
+ Device.xcodeproj/project.pbxproj                                   | 830 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Device.xcodeproj/project.xcworkspace/contents.xcworkspacedata      |   7 +++++++
+ Device.xcodeproj/xcshareddata/xcschemes/Device_iOS.xcscheme        |  99 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Device.xcodeproj/xcshareddata/xcschemes/Device_tvOS.xcscheme       |  99 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ DeviceKit.xcodeproj/project.xcworkspace/contents.xcworkspacedata   |   7 -------
+ DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-iOS.xcscheme  |  99 ---------------------------------------------------------------------------------------------------
+ DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-tvOS.xcscheme |  99 ---------------------------------------------------------------------------------------------------
+ Device_iOS/Device_iOS.h                                            |  19 +++++++++++++++++++
+ Device_iOS/Info.plist                                              |  26 ++++++++++++++++++++++++++
+ Device_iOSTests/Device_iOSTests.swift                              |  35 +++++++++++++++++++++++++++++++++++
+ Device_iOSTests/Info.plist                                         |  24 ++++++++++++++++++++++++
+ Device_tvOS/Device_tvOS.h                                          |  19 +++++++++++++++++++
+ Device_tvOS/Info.plist                                             |  26 ++++++++++++++++++++++++++
+ Device_tvOSTests/Device_tvOSTests.swift                            |  23 +++++++++++++++++++++++
+ Device_tvOSTests/Info.plist                                        |  24 ++++++++++++++++++++++++
+ LICENSE                                                            |   2 ++
+ README.md                                                          | 195 ++++++++++++++++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ SharedCode/Device.swift                                            | 397 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Source/Device.swift                                                | 518 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Source/Info.plist                                                  |  26 --------------------------
+ Tests/Info.plist                                                   |  24 ------------------------
+ 24 files changed, 1672 insertions(+), 1004 deletions(-)
+ create mode 100644 Device.podspec
+ create mode 100644 Device.xcodeproj/project.pbxproj
+ create mode 100644 Device.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+ create mode 100644 Device.xcodeproj/xcshareddata/xcschemes/Device_iOS.xcscheme
+ create mode 100644 Device.xcodeproj/xcshareddata/xcschemes/Device_tvOS.xcscheme
+ delete mode 100644 DeviceKit.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+ delete mode 100644 DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-iOS.xcscheme
+ delete mode 100644 DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-tvOS.xcscheme
+ create mode 100644 Device_iOS/Device_iOS.h
+ create mode 100644 Device_iOS/Info.plist
+ create mode 100644 Device_iOSTests/Device_iOSTests.swift
+ create mode 100644 Device_iOSTests/Info.plist
+ create mode 100644 Device_tvOS/Device_tvOS.h
+ create mode 100644 Device_tvOS/Info.plist
+ create mode 100644 Device_tvOSTests/Device_tvOSTests.swift
+ create mode 100644 Device_tvOSTests/Info.plist
+ create mode 100644 SharedCode/Device.swift
+ delete mode 100644 Source/Device.swift
+ delete mode 100644 Source/Info.plist
+ delete mode 100644 Tests/Info.plist
+
+diff --git a/.gitignore b/.gitignore
+index 40ca05c..1587e3d 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -8,8 +8,6 @@
+ ## Build generated
+ build/
+ DerivedData
+-*.profraw
+-*.profdata
+ 
+ ## Various settings
+ *.pbxuser
+@@ -25,9 +23,4 @@ xcuserdata
+ ## Other
+ *.xccheckout
+ *.moved-aside
+-*.xcuserstate
+-*.DS_Store
+-Utils/gyb.pyc
+-
+-## Generated Files
+-# *.generated.swift # we have to check it in because of CocoaPods ...
++*.xcuserstate
+\ No newline at end of file
+diff --git a/.travis.yml b/.travis.yml
+index 3ee0313..2071c41 100644
+--- a/.travis.yml
++++ b/.travis.yml
+@@ -1,45 +1,5 @@
+ language: objective-c
+-osx_image: xcode9.3
+-
+-env:
+-  - DESTINATION='platform=iOS Simulator,name=iPad (5th generation)'
+-  - DESTINATION='platform=iOS Simulator,name=iPad Air'
+-  - DESTINATION='platform=iOS Simulator,name=iPad Air 2'
+-  - DESTINATION='platform=iOS Simulator,name=iPad Pro (9.7-inch)'
+-  - DESTINATION='platform=iOS Simulator,name=iPad Pro (10.5-inch)'
+-  - DESTINATION='platform=iOS Simulator,name=iPad Pro (12.9-inch)'
+-  - DESTINATION='platform=iOS Simulator,name=iPad Pro (12.9-inch) (2nd generation)'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 5s'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 6'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 6 Plus'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 6s'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 6s Plus'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 7'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 7 Plus'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 8'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone 8 Plus'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone SE'
+-  - DESTINATION='platform=iOS Simulator,name=iPhone X'
+-
+-  - DESTINATION='platform=tvOS Simulator,name=Apple TV'
+-  - DESTINATION='platform=tvOS Simulator,name=Apple TV 4K'
+-
+-install:
+-  - bundle install
+-
+-install:
+-  - brew update && brew upgrade swiftlint
+-  - bundle install
+-
+-script:
+-  - set -o pipefail && travis_retry xcodebuild -scheme DeviceKit -destination "$DESTINATION" -configuration Debug ONLY_ACTIVE_ARCH=YES -enableCodeCoverage YES test
+-  - bundle exec danger
+-
+-deploy:
+-  provider: script
+-  script: ./Scripts/push.sh
+-  on:
+-    tags: true
+-
+-after_success:
+-- bash <(curl -s https://codecov.io/bash)
++osx_image: xcode7.1
++xcode_project: Device.xcodeproj
++xcode_scheme: Device_iOS
++xcode_sdk:  iphonesimulator9.1
+\ No newline at end of file
+diff --git a/Device.podspec b/Device.podspec
+new file mode 100644
+index 0000000..bd7ea2f
+--- /dev/null
++++ b/Device.podspec
+@@ -0,0 +1,21 @@
++Pod::Spec.new do |s|
++  s.name         = 'Device'
++  s.version      = '1.0.0'
++  s.summary      = 'Device is a µ-framework that provides a value-type wrapper of UIDevice.'
++
++  s.description             = <<-DESC
++                                `Device` is a value-type wrapper and extension of [`UIDevice`](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/).
++                              DESC
++
++  s.homepage                = 'https://github.com/dennisweissmann/Device'
++  s.license                 = { :type => 'MIT', :file => 'LICENSE' }
++  s.author                  = 'Dennis Weissmann'
++  s.social_media_url        = 'https://twitter.com/dennis_weissman'
++
++  s.requires_arc            = true
++  s.ios.deployment_target   = '8.0'
++  s.tvos.deployment_target  = '9.0'
++
++  s.source                  = { :git => 'https://github.com/dennisweissmann/Device.git', :tag => s.version.to_s }
++  s.source_files            = 'Device/**/*.swift'
++end
+diff --git a/Device.xcodeproj/project.pbxproj b/Device.xcodeproj/project.pbxproj
+new file mode 100644
+index 0000000..c4d66a5
+--- /dev/null
++++ b/Device.xcodeproj/project.pbxproj
+@@ -0,0 +1,830 @@
++// !$*UTF8*$!
++{
++	archiveVersion = 1;
++	classes = {
++	};
++	objectVersion = 46;
++	objects = {
++
++/* Begin PBXBuildFile section */
++		95AC5B851BFB9DCF006D55D9 /* Device_iOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 95AC5B841BFB9DCF006D55D9 /* Device_iOS.h */; settings = {ATTRIBUTES = (Public, ); }; };
++		95AC5B8C1BFB9DCF006D55D9 /* Device.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95AC5B811BFB9DCF006D55D9 /* Device.framework */; };
++		95AC5BA11BFB9DE9006D55D9 /* Device_tvOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 95AC5BA01BFB9DE9006D55D9 /* Device_tvOS.h */; settings = {ATTRIBUTES = (Public, ); }; };
++		95AC5BA81BFB9DE9006D55D9 /* Device.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95AC5B9E1BFB9DE9006D55D9 /* Device.framework */; };
++		95AC5BAD1BFB9DE9006D55D9 /* Device_tvOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AC5BAC1BFB9DE9006D55D9 /* Device_tvOSTests.swift */; };
++		95AC5BBD1BFBA5D2006D55D9 /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AC5BBC1BFBA5D2006D55D9 /* Device.swift */; };
++		95AC5BBE1BFBA5D2006D55D9 /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AC5BBC1BFBA5D2006D55D9 /* Device.swift */; };
++		95B600A91BFBC60900E9EAF6 /* Device_iOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B600A81BFBC60900E9EAF6 /* Device_iOSTests.swift */; };
++/* End PBXBuildFile section */
++
++/* Begin PBXContainerItemProxy section */
++		95AC5B8D1BFB9DCF006D55D9 /* PBXContainerItemProxy */ = {
++			isa = PBXContainerItemProxy;
++			containerPortal = 95AC5B761BFB9DB7006D55D9 /* Project object */;
++			proxyType = 1;
++			remoteGlobalIDString = 95AC5B801BFB9DCF006D55D9;
++			remoteInfo = Device_iOS;
++		};
++		95AC5BA91BFB9DE9006D55D9 /* PBXContainerItemProxy */ = {
++			isa = PBXContainerItemProxy;
++			containerPortal = 95AC5B761BFB9DB7006D55D9 /* Project object */;
++			proxyType = 1;
++			remoteGlobalIDString = 95AC5B9D1BFB9DE9006D55D9;
++			remoteInfo = Device_tvOS;
++		};
++/* End PBXContainerItemProxy section */
++
++/* Begin PBXFileReference section */
++		95AC5B811BFB9DCF006D55D9 /* Device.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Device.framework; sourceTree = BUILT_PRODUCTS_DIR; };
++		95AC5B841BFB9DCF006D55D9 /* Device_iOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Device_iOS.h; sourceTree = "<group>"; };
++		95AC5B861BFB9DCF006D55D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
++		95AC5B8B1BFB9DCF006D55D9 /* Device_iOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Device_iOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
++		95AC5B921BFB9DCF006D55D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
++		95AC5B9E1BFB9DE9006D55D9 /* Device.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Device.framework; sourceTree = BUILT_PRODUCTS_DIR; };
++		95AC5BA01BFB9DE9006D55D9 /* Device_tvOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Device_tvOS.h; sourceTree = "<group>"; };
++		95AC5BA21BFB9DE9006D55D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
++		95AC5BA71BFB9DE9006D55D9 /* Device_tvOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Device_tvOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
++		95AC5BAC1BFB9DE9006D55D9 /* Device_tvOSTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device_tvOSTests.swift; sourceTree = "<group>"; };
++		95AC5BAE1BFB9DE9006D55D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
++		95AC5BBC1BFBA5D2006D55D9 /* Device.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Device.swift; path = SharedCode/Device.swift; sourceTree = "<group>"; };
++		95B600A81BFBC60900E9EAF6 /* Device_iOSTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Device_iOSTests.swift; sourceTree = "<group>"; };
++/* End PBXFileReference section */
++
++/* Begin PBXFrameworksBuildPhase section */
++		95AC5B7D1BFB9DCF006D55D9 /* Frameworks */ = {
++			isa = PBXFrameworksBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5B881BFB9DCF006D55D9 /* Frameworks */ = {
++			isa = PBXFrameworksBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95AC5B8C1BFB9DCF006D55D9 /* Device.framework in Frameworks */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5B9A1BFB9DE9006D55D9 /* Frameworks */ = {
++			isa = PBXFrameworksBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5BA41BFB9DE9006D55D9 /* Frameworks */ = {
++			isa = PBXFrameworksBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95AC5BA81BFB9DE9006D55D9 /* Device.framework in Frameworks */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++/* End PBXFrameworksBuildPhase section */
++
++/* Begin PBXGroup section */
++		95AC5B751BFB9DB7006D55D9 = {
++			isa = PBXGroup;
++			children = (
++				95AC5BB81BFBA54F006D55D9 /* Shared Code */,
++				95AC5B831BFB9DCF006D55D9 /* Device_iOS */,
++				95AC5B8F1BFB9DCF006D55D9 /* Device_iOSTests */,
++				95AC5B9F1BFB9DE9006D55D9 /* Device_tvOS */,
++				95AC5BAB1BFB9DE9006D55D9 /* Device_tvOSTests */,
++				95AC5B821BFB9DCF006D55D9 /* Products */,
++			);
++			sourceTree = "<group>";
++		};
++		95AC5B821BFB9DCF006D55D9 /* Products */ = {
++			isa = PBXGroup;
++			children = (
++				95AC5B811BFB9DCF006D55D9 /* Device.framework */,
++				95AC5B8B1BFB9DCF006D55D9 /* Device_iOSTests.xctest */,
++				95AC5B9E1BFB9DE9006D55D9 /* Device.framework */,
++				95AC5BA71BFB9DE9006D55D9 /* Device_tvOSTests.xctest */,
++			);
++			name = Products;
++			sourceTree = "<group>";
++		};
++		95AC5B831BFB9DCF006D55D9 /* Device_iOS */ = {
++			isa = PBXGroup;
++			children = (
++				95AC5B841BFB9DCF006D55D9 /* Device_iOS.h */,
++				95AC5B861BFB9DCF006D55D9 /* Info.plist */,
++			);
++			path = Device_iOS;
++			sourceTree = "<group>";
++		};
++		95AC5B8F1BFB9DCF006D55D9 /* Device_iOSTests */ = {
++			isa = PBXGroup;
++			children = (
++				95B600A81BFBC60900E9EAF6 /* Device_iOSTests.swift */,
++				95AC5B921BFB9DCF006D55D9 /* Info.plist */,
++			);
++			path = Device_iOSTests;
++			sourceTree = "<group>";
++		};
++		95AC5B9F1BFB9DE9006D55D9 /* Device_tvOS */ = {
++			isa = PBXGroup;
++			children = (
++				95AC5BA01BFB9DE9006D55D9 /* Device_tvOS.h */,
++				95AC5BA21BFB9DE9006D55D9 /* Info.plist */,
++			);
++			path = Device_tvOS;
++			sourceTree = "<group>";
++		};
++		95AC5BAB1BFB9DE9006D55D9 /* Device_tvOSTests */ = {
++			isa = PBXGroup;
++			children = (
++				95AC5BAC1BFB9DE9006D55D9 /* Device_tvOSTests.swift */,
++				95AC5BAE1BFB9DE9006D55D9 /* Info.plist */,
++			);
++			path = Device_tvOSTests;
++			sourceTree = "<group>";
++		};
++		95AC5BB81BFBA54F006D55D9 /* Shared Code */ = {
++			isa = PBXGroup;
++			children = (
++				95AC5BBC1BFBA5D2006D55D9 /* Device.swift */,
++			);
++			name = "Shared Code";
++			sourceTree = "<group>";
++		};
++/* End PBXGroup section */
++
++/* Begin PBXHeadersBuildPhase section */
++		95AC5B7E1BFB9DCF006D55D9 /* Headers */ = {
++			isa = PBXHeadersBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95AC5B851BFB9DCF006D55D9 /* Device_iOS.h in Headers */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5B9B1BFB9DE9006D55D9 /* Headers */ = {
++			isa = PBXHeadersBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95AC5BA11BFB9DE9006D55D9 /* Device_tvOS.h in Headers */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++/* End PBXHeadersBuildPhase section */
++
++/* Begin PBXNativeTarget section */
++		95AC5B801BFB9DCF006D55D9 /* Device_iOS */ = {
++			isa = PBXNativeTarget;
++			buildConfigurationList = 95AC5B931BFB9DCF006D55D9 /* Build configuration list for PBXNativeTarget "Device_iOS" */;
++			buildPhases = (
++				95AC5B7C1BFB9DCF006D55D9 /* Sources */,
++				95AC5B7D1BFB9DCF006D55D9 /* Frameworks */,
++				95AC5B7E1BFB9DCF006D55D9 /* Headers */,
++				95AC5B7F1BFB9DCF006D55D9 /* Resources */,
++			);
++			buildRules = (
++			);
++			dependencies = (
++			);
++			name = Device_iOS;
++			productName = Device_iOS;
++			productReference = 95AC5B811BFB9DCF006D55D9 /* Device.framework */;
++			productType = "com.apple.product-type.framework";
++		};
++		95AC5B8A1BFB9DCF006D55D9 /* Device_iOSTests */ = {
++			isa = PBXNativeTarget;
++			buildConfigurationList = 95AC5B961BFB9DCF006D55D9 /* Build configuration list for PBXNativeTarget "Device_iOSTests" */;
++			buildPhases = (
++				95AC5B871BFB9DCF006D55D9 /* Sources */,
++				95AC5B881BFB9DCF006D55D9 /* Frameworks */,
++				95AC5B891BFB9DCF006D55D9 /* Resources */,
++			);
++			buildRules = (
++			);
++			dependencies = (
++				95AC5B8E1BFB9DCF006D55D9 /* PBXTargetDependency */,
++			);
++			name = Device_iOSTests;
++			productName = Device_iOSTests;
++			productReference = 95AC5B8B1BFB9DCF006D55D9 /* Device_iOSTests.xctest */;
++			productType = "com.apple.product-type.bundle.unit-test";
++		};
++		95AC5B9D1BFB9DE9006D55D9 /* Device_tvOS */ = {
++			isa = PBXNativeTarget;
++			buildConfigurationList = 95AC5BAF1BFB9DE9006D55D9 /* Build configuration list for PBXNativeTarget "Device_tvOS" */;
++			buildPhases = (
++				95AC5B991BFB9DE9006D55D9 /* Sources */,
++				95AC5B9A1BFB9DE9006D55D9 /* Frameworks */,
++				95AC5B9B1BFB9DE9006D55D9 /* Headers */,
++				95AC5B9C1BFB9DE9006D55D9 /* Resources */,
++			);
++			buildRules = (
++			);
++			dependencies = (
++			);
++			name = Device_tvOS;
++			productName = Device_tvOS;
++			productReference = 95AC5B9E1BFB9DE9006D55D9 /* Device.framework */;
++			productType = "com.apple.product-type.framework";
++		};
++		95AC5BA61BFB9DE9006D55D9 /* Device_tvOSTests */ = {
++			isa = PBXNativeTarget;
++			buildConfigurationList = 95AC5BB21BFB9DE9006D55D9 /* Build configuration list for PBXNativeTarget "Device_tvOSTests" */;
++			buildPhases = (
++				95AC5BA31BFB9DE9006D55D9 /* Sources */,
++				95AC5BA41BFB9DE9006D55D9 /* Frameworks */,
++				95AC5BA51BFB9DE9006D55D9 /* Resources */,
++			);
++			buildRules = (
++			);
++			dependencies = (
++				95AC5BAA1BFB9DE9006D55D9 /* PBXTargetDependency */,
++			);
++			name = Device_tvOSTests;
++			productName = Device_tvOSTests;
++			productReference = 95AC5BA71BFB9DE9006D55D9 /* Device_tvOSTests.xctest */;
++			productType = "com.apple.product-type.bundle.unit-test";
++		};
++/* End PBXNativeTarget section */
++
++/* Begin PBXProject section */
++		95AC5B761BFB9DB7006D55D9 /* Project object */ = {
++			isa = PBXProject;
++			attributes = {
++				LastSwiftUpdateCheck = 0710;
++				LastUpgradeCheck = 0710;
++				TargetAttributes = {
++					95AC5B801BFB9DCF006D55D9 = {
++						CreatedOnToolsVersion = 7.1.1;
++					};
++					95AC5B8A1BFB9DCF006D55D9 = {
++						CreatedOnToolsVersion = 7.1.1;
++					};
++					95AC5B9D1BFB9DE9006D55D9 = {
++						CreatedOnToolsVersion = 7.1.1;
++					};
++					95AC5BA61BFB9DE9006D55D9 = {
++						CreatedOnToolsVersion = 7.1.1;
++					};
++				};
++			};
++			buildConfigurationList = 95AC5B791BFB9DB7006D55D9 /* Build configuration list for PBXProject "Device" */;
++			compatibilityVersion = "Xcode 3.2";
++			developmentRegion = English;
++			hasScannedForEncodings = 0;
++			knownRegions = (
++				en,
++			);
++			mainGroup = 95AC5B751BFB9DB7006D55D9;
++			productRefGroup = 95AC5B821BFB9DCF006D55D9 /* Products */;
++			projectDirPath = "";
++			projectRoot = "";
++			targets = (
++				95AC5B801BFB9DCF006D55D9 /* Device_iOS */,
++				95AC5B8A1BFB9DCF006D55D9 /* Device_iOSTests */,
++				95AC5B9D1BFB9DE9006D55D9 /* Device_tvOS */,
++				95AC5BA61BFB9DE9006D55D9 /* Device_tvOSTests */,
++			);
++		};
++/* End PBXProject section */
++
++/* Begin PBXResourcesBuildPhase section */
++		95AC5B7F1BFB9DCF006D55D9 /* Resources */ = {
++			isa = PBXResourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5B891BFB9DCF006D55D9 /* Resources */ = {
++			isa = PBXResourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5B9C1BFB9DE9006D55D9 /* Resources */ = {
++			isa = PBXResourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5BA51BFB9DE9006D55D9 /* Resources */ = {
++			isa = PBXResourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++/* End PBXResourcesBuildPhase section */
++
++/* Begin PBXSourcesBuildPhase section */
++		95AC5B7C1BFB9DCF006D55D9 /* Sources */ = {
++			isa = PBXSourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95AC5BBD1BFBA5D2006D55D9 /* Device.swift in Sources */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5B871BFB9DCF006D55D9 /* Sources */ = {
++			isa = PBXSourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95B600A91BFBC60900E9EAF6 /* Device_iOSTests.swift in Sources */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5B991BFB9DE9006D55D9 /* Sources */ = {
++			isa = PBXSourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95AC5BBE1BFBA5D2006D55D9 /* Device.swift in Sources */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++		95AC5BA31BFB9DE9006D55D9 /* Sources */ = {
++			isa = PBXSourcesBuildPhase;
++			buildActionMask = 2147483647;
++			files = (
++				95AC5BAD1BFB9DE9006D55D9 /* Device_tvOSTests.swift in Sources */,
++			);
++			runOnlyForDeploymentPostprocessing = 0;
++		};
++/* End PBXSourcesBuildPhase section */
++
++/* Begin PBXTargetDependency section */
++		95AC5B8E1BFB9DCF006D55D9 /* PBXTargetDependency */ = {
++			isa = PBXTargetDependency;
++			target = 95AC5B801BFB9DCF006D55D9 /* Device_iOS */;
++			targetProxy = 95AC5B8D1BFB9DCF006D55D9 /* PBXContainerItemProxy */;
++		};
++		95AC5BAA1BFB9DE9006D55D9 /* PBXTargetDependency */ = {
++			isa = PBXTargetDependency;
++			target = 95AC5B9D1BFB9DE9006D55D9 /* Device_tvOS */;
++			targetProxy = 95AC5BA91BFB9DE9006D55D9 /* PBXContainerItemProxy */;
++		};
++/* End PBXTargetDependency section */
++
++/* Begin XCBuildConfiguration section */
++		95AC5B7A1BFB9DB7006D55D9 /* Debug */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++			};
++			name = Debug;
++		};
++		95AC5B7B1BFB9DB7006D55D9 /* Release */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++			};
++			name = Release;
++		};
++		95AC5B941BFB9DCF006D55D9 /* Debug */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
++				COPY_PHASE_STRIP = NO;
++				CURRENT_PROJECT_VERSION = 1;
++				DEBUG_INFORMATION_FORMAT = dwarf;
++				DEFINES_MODULE = YES;
++				DYLIB_COMPATIBILITY_VERSION = 1;
++				DYLIB_CURRENT_VERSION = 1;
++				DYLIB_INSTALL_NAME_BASE = "@rpath";
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				ENABLE_TESTABILITY = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_DYNAMIC_NO_PIC = NO;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_OPTIMIZATION_LEVEL = 0;
++				GCC_PREPROCESSOR_DEFINITIONS = (
++					"DEBUG=1",
++					"$(inherited)",
++				);
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_iOS/Info.plist;
++				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
++				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = YES;
++				ONLY_ACTIVE_ARCH = YES;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-iOS";
++				PRODUCT_MODULE_NAME = Device;
++				PRODUCT_NAME = Device;
++				SDKROOT = iphoneos;
++				SKIP_INSTALL = YES;
++				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
++				TARGETED_DEVICE_FAMILY = "1,2";
++				VERSIONING_SYSTEM = "apple-generic";
++				VERSION_INFO_PREFIX = "";
++			};
++			name = Debug;
++		};
++		95AC5B951BFB9DCF006D55D9 /* Release */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
++				COPY_PHASE_STRIP = NO;
++				CURRENT_PROJECT_VERSION = 1;
++				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
++				DEFINES_MODULE = YES;
++				DYLIB_COMPATIBILITY_VERSION = 1;
++				DYLIB_CURRENT_VERSION = 1;
++				DYLIB_INSTALL_NAME_BASE = "@rpath";
++				ENABLE_NS_ASSERTIONS = NO;
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_iOS/Info.plist;
++				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
++				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = NO;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-iOS";
++				PRODUCT_MODULE_NAME = Device;
++				PRODUCT_NAME = Device;
++				SDKROOT = iphoneos;
++				SKIP_INSTALL = YES;
++				TARGETED_DEVICE_FAMILY = "1,2";
++				VALIDATE_PRODUCT = YES;
++				VERSIONING_SYSTEM = "apple-generic";
++				VERSION_INFO_PREFIX = "";
++			};
++			name = Release;
++		};
++		95AC5B971BFB9DCF006D55D9 /* Debug */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
++				COPY_PHASE_STRIP = NO;
++				DEBUG_INFORMATION_FORMAT = dwarf;
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				ENABLE_TESTABILITY = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_DYNAMIC_NO_PIC = NO;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_OPTIMIZATION_LEVEL = 0;
++				GCC_PREPROCESSOR_DEFINITIONS = (
++					"DEBUG=1",
++					"$(inherited)",
++				);
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_iOSTests/Info.plist;
++				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = YES;
++				ONLY_ACTIVE_ARCH = YES;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-iOSTests";
++				PRODUCT_NAME = "$(TARGET_NAME)";
++				SDKROOT = iphoneos;
++				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
++			};
++			name = Debug;
++		};
++		95AC5B981BFB9DCF006D55D9 /* Release */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
++				COPY_PHASE_STRIP = NO;
++				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
++				ENABLE_NS_ASSERTIONS = NO;
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_iOSTests/Info.plist;
++				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = NO;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-iOSTests";
++				PRODUCT_NAME = "$(TARGET_NAME)";
++				SDKROOT = iphoneos;
++				VALIDATE_PRODUCT = YES;
++			};
++			name = Release;
++		};
++		95AC5BB01BFB9DE9006D55D9 /* Debug */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				COPY_PHASE_STRIP = NO;
++				CURRENT_PROJECT_VERSION = 1;
++				DEBUG_INFORMATION_FORMAT = dwarf;
++				DEFINES_MODULE = YES;
++				DYLIB_COMPATIBILITY_VERSION = 1;
++				DYLIB_CURRENT_VERSION = 1;
++				DYLIB_INSTALL_NAME_BASE = "@rpath";
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				ENABLE_TESTABILITY = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_DYNAMIC_NO_PIC = NO;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_OPTIMIZATION_LEVEL = 0;
++				GCC_PREPROCESSOR_DEFINITIONS = (
++					"DEBUG=1",
++					"$(inherited)",
++				);
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_tvOS/Info.plist;
++				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = YES;
++				ONLY_ACTIVE_ARCH = YES;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-tvOS";
++				PRODUCT_MODULE_NAME = Device;
++				PRODUCT_NAME = Device;
++				SDKROOT = appletvos;
++				SKIP_INSTALL = YES;
++				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
++				TARGETED_DEVICE_FAMILY = 3;
++				TVOS_DEPLOYMENT_TARGET = 9.0;
++				VERSIONING_SYSTEM = "apple-generic";
++				VERSION_INFO_PREFIX = "";
++			};
++			name = Debug;
++		};
++		95AC5BB11BFB9DE9006D55D9 /* Release */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				COPY_PHASE_STRIP = NO;
++				CURRENT_PROJECT_VERSION = 1;
++				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
++				DEFINES_MODULE = YES;
++				DYLIB_COMPATIBILITY_VERSION = 1;
++				DYLIB_CURRENT_VERSION = 1;
++				DYLIB_INSTALL_NAME_BASE = "@rpath";
++				ENABLE_NS_ASSERTIONS = NO;
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_tvOS/Info.plist;
++				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = NO;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-tvOS";
++				PRODUCT_MODULE_NAME = Device;
++				PRODUCT_NAME = Device;
++				SDKROOT = appletvos;
++				SKIP_INSTALL = YES;
++				TARGETED_DEVICE_FAMILY = 3;
++				TVOS_DEPLOYMENT_TARGET = 9.0;
++				VALIDATE_PRODUCT = YES;
++				VERSIONING_SYSTEM = "apple-generic";
++				VERSION_INFO_PREFIX = "";
++			};
++			name = Release;
++		};
++		95AC5BB31BFB9DE9006D55D9 /* Debug */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				COPY_PHASE_STRIP = NO;
++				DEBUG_INFORMATION_FORMAT = dwarf;
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				ENABLE_TESTABILITY = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_DYNAMIC_NO_PIC = NO;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_OPTIMIZATION_LEVEL = 0;
++				GCC_PREPROCESSOR_DEFINITIONS = (
++					"DEBUG=1",
++					"$(inherited)",
++				);
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_tvOSTests/Info.plist;
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = YES;
++				ONLY_ACTIVE_ARCH = YES;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-tvOSTests";
++				PRODUCT_NAME = "$(TARGET_NAME)";
++				SDKROOT = appletvos;
++				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
++				TVOS_DEPLOYMENT_TARGET = 9.0;
++			};
++			name = Debug;
++		};
++		95AC5BB41BFB9DE9006D55D9 /* Release */ = {
++			isa = XCBuildConfiguration;
++			buildSettings = {
++				ALWAYS_SEARCH_USER_PATHS = NO;
++				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
++				CLANG_CXX_LIBRARY = "libc++";
++				CLANG_ENABLE_MODULES = YES;
++				CLANG_ENABLE_OBJC_ARC = YES;
++				CLANG_WARN_BOOL_CONVERSION = YES;
++				CLANG_WARN_CONSTANT_CONVERSION = YES;
++				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
++				CLANG_WARN_EMPTY_BODY = YES;
++				CLANG_WARN_ENUM_CONVERSION = YES;
++				CLANG_WARN_INT_CONVERSION = YES;
++				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
++				CLANG_WARN_UNREACHABLE_CODE = YES;
++				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
++				COPY_PHASE_STRIP = NO;
++				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
++				ENABLE_NS_ASSERTIONS = NO;
++				ENABLE_STRICT_OBJC_MSGSEND = YES;
++				GCC_C_LANGUAGE_STANDARD = gnu99;
++				GCC_NO_COMMON_BLOCKS = YES;
++				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
++				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
++				GCC_WARN_UNDECLARED_SELECTOR = YES;
++				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
++				GCC_WARN_UNUSED_FUNCTION = YES;
++				GCC_WARN_UNUSED_VARIABLE = YES;
++				INFOPLIST_FILE = Device_tvOSTests/Info.plist;
++				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
++				MTL_ENABLE_DEBUG_INFO = NO;
++				PRODUCT_BUNDLE_IDENTIFIER = "com.hotactionstudios.Device-tvOSTests";
++				PRODUCT_NAME = "$(TARGET_NAME)";
++				SDKROOT = appletvos;
++				TVOS_DEPLOYMENT_TARGET = 9.0;
++				VALIDATE_PRODUCT = YES;
++			};
++			name = Release;
++		};
++/* End XCBuildConfiguration section */
++
++/* Begin XCConfigurationList section */
++		95AC5B791BFB9DB7006D55D9 /* Build configuration list for PBXProject "Device" */ = {
++			isa = XCConfigurationList;
++			buildConfigurations = (
++				95AC5B7A1BFB9DB7006D55D9 /* Debug */,
++				95AC5B7B1BFB9DB7006D55D9 /* Release */,
++			);
++			defaultConfigurationIsVisible = 0;
++			defaultConfigurationName = Release;
++		};
++		95AC5B931BFB9DCF006D55D9 /* Build configuration list for PBXNativeTarget "Device_iOS" */ = {
++			isa = XCConfigurationList;
++			buildConfigurations = (
++				95AC5B941BFB9DCF006D55D9 /* Debug */,
++				95AC5B951BFB9DCF006D55D9 /* Release */,
++			);
++			defaultConfigurationIsVisible = 0;
++			defaultConfigurationName = Release;
++		};
++		95AC5B961BFB9DCF006D55D9 /* Build configuration list for PBXNativeTarget "Device_iOSTests" */ = {
++			isa = XCConfigurationList;
++			buildConfigurations = (
++				95AC5B971BFB9DCF006D55D9 /* Debug */,
++				95AC5B981BFB9DCF006D55D9 /* Release */,
++			);
++			defaultConfigurationIsVisible = 0;
++			defaultConfigurationName = Release;
++		};
++		95AC5BAF1BFB9DE9006D55D9 /* Build configuration list for PBXNativeTarget "Device_tvOS" */ = {
++			isa = XCConfigurationList;
++			buildConfigurations = (
++				95AC5BB01BFB9DE9006D55D9 /* Debug */,
++				95AC5BB11BFB9DE9006D55D9 /* Release */,
++			);
++			defaultConfigurationIsVisible = 0;
++			defaultConfigurationName = Release;
++		};
++		95AC5BB21BFB9DE9006D55D9 /* Build configuration list for PBXNativeTarget "Device_tvOSTests" */ = {
++			isa = XCConfigurationList;
++			buildConfigurations = (
++				95AC5BB31BFB9DE9006D55D9 /* Debug */,
++				95AC5BB41BFB9DE9006D55D9 /* Release */,
++			);
++			defaultConfigurationIsVisible = 0;
++			defaultConfigurationName = Release;
++		};
++/* End XCConfigurationList section */
++	};
++	rootObject = 95AC5B761BFB9DB7006D55D9 /* Project object */;
++}
+diff --git a/Device.xcodeproj/project.xcworkspace/contents.xcworkspacedata b/Device.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+new file mode 100644
+index 0000000..8e21f58
+--- /dev/null
++++ b/Device.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<Workspace
++   version = "1.0">
++   <FileRef
++      location = "self:Device.xcodeproj">
++   </FileRef>
++</Workspace>
+diff --git a/Device.xcodeproj/xcshareddata/xcschemes/Device_iOS.xcscheme b/Device.xcodeproj/xcshareddata/xcschemes/Device_iOS.xcscheme
+new file mode 100644
+index 0000000..cafd103
+--- /dev/null
++++ b/Device.xcodeproj/xcshareddata/xcschemes/Device_iOS.xcscheme
+@@ -0,0 +1,99 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<Scheme
++   LastUpgradeVersion = "0710"
++   version = "1.3">
++   <BuildAction
++      parallelizeBuildables = "YES"
++      buildImplicitDependencies = "YES">
++      <BuildActionEntries>
++         <BuildActionEntry
++            buildForTesting = "YES"
++            buildForRunning = "YES"
++            buildForProfiling = "YES"
++            buildForArchiving = "YES"
++            buildForAnalyzing = "YES">
++            <BuildableReference
++               BuildableIdentifier = "primary"
++               BlueprintIdentifier = "95AC5B801BFB9DCF006D55D9"
++               BuildableName = "Device.framework"
++               BlueprintName = "Device_iOS"
++               ReferencedContainer = "container:Device.xcodeproj">
++            </BuildableReference>
++         </BuildActionEntry>
++      </BuildActionEntries>
++   </BuildAction>
++   <TestAction
++      buildConfiguration = "Debug"
++      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
++      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
++      shouldUseLaunchSchemeArgsEnv = "YES">
++      <Testables>
++         <TestableReference
++            skipped = "NO">
++            <BuildableReference
++               BuildableIdentifier = "primary"
++               BlueprintIdentifier = "95AC5B8A1BFB9DCF006D55D9"
++               BuildableName = "Device_iOSTests.xctest"
++               BlueprintName = "Device_iOSTests"
++               ReferencedContainer = "container:Device.xcodeproj">
++            </BuildableReference>
++         </TestableReference>
++      </Testables>
++      <MacroExpansion>
++         <BuildableReference
++            BuildableIdentifier = "primary"
++            BlueprintIdentifier = "95AC5B801BFB9DCF006D55D9"
++            BuildableName = "Device.framework"
++            BlueprintName = "Device_iOS"
++            ReferencedContainer = "container:Device.xcodeproj">
++         </BuildableReference>
++      </MacroExpansion>
++      <AdditionalOptions>
++      </AdditionalOptions>
++   </TestAction>
++   <LaunchAction
++      buildConfiguration = "Debug"
++      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
++      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
++      launchStyle = "0"
++      useCustomWorkingDirectory = "NO"
++      ignoresPersistentStateOnLaunch = "NO"
++      debugDocumentVersioning = "YES"
++      debugServiceExtension = "internal"
++      allowLocationSimulation = "YES">
++      <MacroExpansion>
++         <BuildableReference
++            BuildableIdentifier = "primary"
++            BlueprintIdentifier = "95AC5B801BFB9DCF006D55D9"
++            BuildableName = "Device.framework"
++            BlueprintName = "Device_iOS"
++            ReferencedContainer = "container:Device.xcodeproj">
++         </BuildableReference>
++      </MacroExpansion>
++      <AdditionalOptions>
++      </AdditionalOptions>
++   </LaunchAction>
++   <ProfileAction
++      buildConfiguration = "Release"
++      shouldUseLaunchSchemeArgsEnv = "YES"
++      savedToolIdentifier = ""
++      useCustomWorkingDirectory = "NO"
++      debugDocumentVersioning = "YES">
++      <MacroExpansion>
++         <BuildableReference
++            BuildableIdentifier = "primary"
++            BlueprintIdentifier = "95AC5B801BFB9DCF006D55D9"
++            BuildableName = "Device.framework"
++            BlueprintName = "Device_iOS"
++            ReferencedContainer = "container:Device.xcodeproj">
++         </BuildableReference>
++      </MacroExpansion>
++   </ProfileAction>
++   <AnalyzeAction
++      buildConfiguration = "Debug">
++   </AnalyzeAction>
++   <ArchiveAction
++      buildConfiguration = "Release"
++      revealArchiveInOrganizer = "YES">
++   </ArchiveAction>
++</Scheme>
+diff --git a/Device.xcodeproj/xcshareddata/xcschemes/Device_tvOS.xcscheme b/Device.xcodeproj/xcshareddata/xcschemes/Device_tvOS.xcscheme
+new file mode 100644
+index 0000000..f8cf4e6
+--- /dev/null
++++ b/Device.xcodeproj/xcshareddata/xcschemes/Device_tvOS.xcscheme
+@@ -0,0 +1,99 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<Scheme
++   LastUpgradeVersion = "0710"
++   version = "1.3">
++   <BuildAction
++      parallelizeBuildables = "YES"
++      buildImplicitDependencies = "YES">
++      <BuildActionEntries>
++         <BuildActionEntry
++            buildForTesting = "YES"
++            buildForRunning = "YES"
++            buildForProfiling = "YES"
++            buildForArchiving = "YES"
++            buildForAnalyzing = "YES">
++            <BuildableReference
++               BuildableIdentifier = "primary"
++               BlueprintIdentifier = "95AC5B9D1BFB9DE9006D55D9"
++               BuildableName = "Device.framework"
++               BlueprintName = "Device_tvOS"
++               ReferencedContainer = "container:Device.xcodeproj">
++            </BuildableReference>
++         </BuildActionEntry>
++      </BuildActionEntries>
++   </BuildAction>
++   <TestAction
++      buildConfiguration = "Debug"
++      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
++      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
++      shouldUseLaunchSchemeArgsEnv = "YES">
++      <Testables>
++         <TestableReference
++            skipped = "NO">
++            <BuildableReference
++               BuildableIdentifier = "primary"
++               BlueprintIdentifier = "95AC5BA61BFB9DE9006D55D9"
++               BuildableName = "Device_tvOSTests.xctest"
++               BlueprintName = "Device_tvOSTests"
++               ReferencedContainer = "container:Device.xcodeproj">
++            </BuildableReference>
++         </TestableReference>
++      </Testables>
++      <MacroExpansion>
++         <BuildableReference
++            BuildableIdentifier = "primary"
++            BlueprintIdentifier = "95AC5B9D1BFB9DE9006D55D9"
++            BuildableName = "Device.framework"
++            BlueprintName = "Device_tvOS"
++            ReferencedContainer = "container:Device.xcodeproj">
++         </BuildableReference>
++      </MacroExpansion>
++      <AdditionalOptions>
++      </AdditionalOptions>
++   </TestAction>
++   <LaunchAction
++      buildConfiguration = "Debug"
++      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
++      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
++      launchStyle = "0"
++      useCustomWorkingDirectory = "NO"
++      ignoresPersistentStateOnLaunch = "NO"
++      debugDocumentVersioning = "YES"
++      debugServiceExtension = "internal"
++      allowLocationSimulation = "YES">
++      <MacroExpansion>
++         <BuildableReference
++            BuildableIdentifier = "primary"
++            BlueprintIdentifier = "95AC5B9D1BFB9DE9006D55D9"
++            BuildableName = "Device.framework"
++            BlueprintName = "Device_tvOS"
++            ReferencedContainer = "container:Device.xcodeproj">
++         </BuildableReference>
++      </MacroExpansion>
++      <AdditionalOptions>
++      </AdditionalOptions>
++   </LaunchAction>
++   <ProfileAction
++      buildConfiguration = "Release"
++      shouldUseLaunchSchemeArgsEnv = "YES"
++      savedToolIdentifier = ""
++      useCustomWorkingDirectory = "NO"
++      debugDocumentVersioning = "YES">
++      <MacroExpansion>
++         <BuildableReference
++            BuildableIdentifier = "primary"
++            BlueprintIdentifier = "95AC5B9D1BFB9DE9006D55D9"
++            BuildableName = "Device.framework"
++            BlueprintName = "Device_tvOS"
++            ReferencedContainer = "container:Device.xcodeproj">
++         </BuildableReference>
++      </MacroExpansion>
++   </ProfileAction>
++   <AnalyzeAction
++      buildConfiguration = "Debug">
++   </AnalyzeAction>
++   <ArchiveAction
++      buildConfiguration = "Release"
++      revealArchiveInOrganizer = "YES">
++   </ArchiveAction>
++</Scheme>
+diff --git a/DeviceKit.xcodeproj/project.xcworkspace/contents.xcworkspacedata b/DeviceKit.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+deleted file mode 100644
+index d72930c..0000000
+--- a/DeviceKit.xcodeproj/project.xcworkspace/contents.xcworkspacedata
++++ /dev/null
+@@ -1,7 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<Workspace
+-   version = "1.0">
+-   <FileRef
+-      location = "self:DeviceKit.xcodeproj">
+-   </FileRef>
+-</Workspace>
+diff --git a/DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-iOS.xcscheme b/DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-iOS.xcscheme
+deleted file mode 100644
+index 356c42c..0000000
+--- a/DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-iOS.xcscheme
++++ /dev/null
+@@ -1,99 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<Scheme
+-   LastUpgradeVersion = "0800"
+-   version = "1.3">
+-   <BuildAction
+-      parallelizeBuildables = "YES"
+-      buildImplicitDependencies = "YES">
+-      <BuildActionEntries>
+-         <BuildActionEntry
+-            buildForTesting = "YES"
+-            buildForRunning = "YES"
+-            buildForProfiling = "YES"
+-            buildForArchiving = "YES"
+-            buildForAnalyzing = "YES">
+-            <BuildableReference
+-               BuildableIdentifier = "primary"
+-               BlueprintIdentifier = "95CBDB6E1BFD2B5F0065FC66"
+-               BuildableName = "DeviceKit.framework"
+-               BlueprintName = "DeviceKit-iOS"
+-               ReferencedContainer = "container:DeviceKit.xcodeproj">
+-            </BuildableReference>
+-         </BuildActionEntry>
+-      </BuildActionEntries>
+-   </BuildAction>
+-   <TestAction
+-      buildConfiguration = "Debug"
+-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+-      shouldUseLaunchSchemeArgsEnv = "YES">
+-      <Testables>
+-         <TestableReference
+-            skipped = "NO">
+-            <BuildableReference
+-               BuildableIdentifier = "primary"
+-               BlueprintIdentifier = "95CBDB781BFD2B5F0065FC66"
+-               BuildableName = "DeviceKit-iOSTests.xctest"
+-               BlueprintName = "DeviceKit-iOSTests"
+-               ReferencedContainer = "container:DeviceKit.xcodeproj">
+-            </BuildableReference>
+-         </TestableReference>
+-      </Testables>
+-      <MacroExpansion>
+-         <BuildableReference
+-            BuildableIdentifier = "primary"
+-            BlueprintIdentifier = "95CBDB6E1BFD2B5F0065FC66"
+-            BuildableName = "DeviceKit.framework"
+-            BlueprintName = "DeviceKit-iOS"
+-            ReferencedContainer = "container:DeviceKit.xcodeproj">
+-         </BuildableReference>
+-      </MacroExpansion>
+-      <AdditionalOptions>
+-      </AdditionalOptions>
+-   </TestAction>
+-   <LaunchAction
+-      buildConfiguration = "Debug"
+-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+-      launchStyle = "0"
+-      useCustomWorkingDirectory = "NO"
+-      ignoresPersistentStateOnLaunch = "NO"
+-      debugDocumentVersioning = "YES"
+-      debugServiceExtension = "internal"
+-      allowLocationSimulation = "YES">
+-      <MacroExpansion>
+-         <BuildableReference
+-            BuildableIdentifier = "primary"
+-            BlueprintIdentifier = "95CBDB6E1BFD2B5F0065FC66"
+-            BuildableName = "DeviceKit.framework"
+-            BlueprintName = "DeviceKit-iOS"
+-            ReferencedContainer = "container:DeviceKit.xcodeproj">
+-         </BuildableReference>
+-      </MacroExpansion>
+-      <AdditionalOptions>
+-      </AdditionalOptions>
+-   </LaunchAction>
+-   <ProfileAction
+-      buildConfiguration = "Release"
+-      shouldUseLaunchSchemeArgsEnv = "YES"
+-      savedToolIdentifier = ""
+-      useCustomWorkingDirectory = "NO"
+-      debugDocumentVersioning = "YES">
+-      <MacroExpansion>
+-         <BuildableReference
+-            BuildableIdentifier = "primary"
+-            BlueprintIdentifier = "95CBDB6E1BFD2B5F0065FC66"
+-            BuildableName = "DeviceKit.framework"
+-            BlueprintName = "DeviceKit-iOS"
+-            ReferencedContainer = "container:DeviceKit.xcodeproj">
+-         </BuildableReference>
+-      </MacroExpansion>
+-   </ProfileAction>
+-   <AnalyzeAction
+-      buildConfiguration = "Debug">
+-   </AnalyzeAction>
+-   <ArchiveAction
+-      buildConfiguration = "Release"
+-      revealArchiveInOrganizer = "YES">
+-   </ArchiveAction>
+-</Scheme>
+diff --git a/DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-tvOS.xcscheme b/DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-tvOS.xcscheme
+deleted file mode 100644
+index b7d86cf..0000000
+--- a/DeviceKit.xcodeproj/xcshareddata/xcschemes/DeviceKit-tvOS.xcscheme
++++ /dev/null
+@@ -1,99 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<Scheme
+-   LastUpgradeVersion = "0800"
+-   version = "1.3">
+-   <BuildAction
+-      parallelizeBuildables = "YES"
+-      buildImplicitDependencies = "YES">
+-      <BuildActionEntries>
+-         <BuildActionEntry
+-            buildForTesting = "YES"
+-            buildForRunning = "YES"
+-            buildForProfiling = "YES"
+-            buildForArchiving = "YES"
+-            buildForAnalyzing = "YES">
+-            <BuildableReference
+-               BuildableIdentifier = "primary"
+-               BlueprintIdentifier = "95CBDB8B1BFD2B720065FC66"
+-               BuildableName = "DeviceKit.framework"
+-               BlueprintName = "DeviceKit-tvOS"
+-               ReferencedContainer = "container:DeviceKit.xcodeproj">
+-            </BuildableReference>
+-         </BuildActionEntry>
+-      </BuildActionEntries>
+-   </BuildAction>
+-   <TestAction
+-      buildConfiguration = "Debug"
+-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+-      shouldUseLaunchSchemeArgsEnv = "YES">
+-      <Testables>
+-         <TestableReference
+-            skipped = "NO">
+-            <BuildableReference
+-               BuildableIdentifier = "primary"
+-               BlueprintIdentifier = "95CBDB941BFD2B720065FC66"
+-               BuildableName = "DeviceKit-tvOSTests.xctest"
+-               BlueprintName = "DeviceKit-tvOSTests"
+-               ReferencedContainer = "container:DeviceKit.xcodeproj">
+-            </BuildableReference>
+-         </TestableReference>
+-      </Testables>
+-      <MacroExpansion>
+-         <BuildableReference
+-            BuildableIdentifier = "primary"
+-            BlueprintIdentifier = "95CBDB8B1BFD2B720065FC66"
+-            BuildableName = "DeviceKit.framework"
+-            BlueprintName = "DeviceKit-tvOS"
+-            ReferencedContainer = "container:DeviceKit.xcodeproj">
+-         </BuildableReference>
+-      </MacroExpansion>
+-      <AdditionalOptions>
+-      </AdditionalOptions>
+-   </TestAction>
+-   <LaunchAction
+-      buildConfiguration = "Debug"
+-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+-      launchStyle = "0"
+-      useCustomWorkingDirectory = "NO"
+-      ignoresPersistentStateOnLaunch = "NO"
+-      debugDocumentVersioning = "YES"
+-      debugServiceExtension = "internal"
+-      allowLocationSimulation = "YES">
+-      <MacroExpansion>
+-         <BuildableReference
+-            BuildableIdentifier = "primary"
+-            BlueprintIdentifier = "95CBDB8B1BFD2B720065FC66"
+-            BuildableName = "DeviceKit.framework"
+-            BlueprintName = "DeviceKit-tvOS"
+-            ReferencedContainer = "container:DeviceKit.xcodeproj">
+-         </BuildableReference>
+-      </MacroExpansion>
+-      <AdditionalOptions>
+-      </AdditionalOptions>
+-   </LaunchAction>
+-   <ProfileAction
+-      buildConfiguration = "Release"
+-      shouldUseLaunchSchemeArgsEnv = "YES"
+-      savedToolIdentifier = ""
+-      useCustomWorkingDirectory = "NO"
+-      debugDocumentVersioning = "YES">
+-      <MacroExpansion>
+-         <BuildableReference
+-            BuildableIdentifier = "primary"
+-            BlueprintIdentifier = "95CBDB8B1BFD2B720065FC66"
+-            BuildableName = "DeviceKit.framework"
+-            BlueprintName = "DeviceKit-tvOS"
+-            ReferencedContainer = "container:DeviceKit.xcodeproj">
+-         </BuildableReference>
+-      </MacroExpansion>
+-   </ProfileAction>
+-   <AnalyzeAction
+-      buildConfiguration = "Debug">
+-   </AnalyzeAction>
+-   <ArchiveAction
+-      buildConfiguration = "Release"
+-      revealArchiveInOrganizer = "YES">
+-   </ArchiveAction>
+-</Scheme>
+diff --git a/Device_iOS/Device_iOS.h b/Device_iOS/Device_iOS.h
+new file mode 100644
+index 0000000..7da75ea
+--- /dev/null
++++ b/Device_iOS/Device_iOS.h
+@@ -0,0 +1,19 @@
++//
++//  Device_iOS.h
++//  Device_iOS
++//
++//  Created by Dennis Weissmann on 11/17/15.
++//
++//
++
++#import <UIKit/UIKit.h>
++
++//! Project version number for Device_iOS.
++FOUNDATION_EXPORT double Device_iOSVersionNumber;
++
++//! Project version string for Device_iOS.
++FOUNDATION_EXPORT const unsigned char Device_iOSVersionString[];
++
++// In this header, you should import all the public headers of your framework using statements like #import <Device_iOS/PublicHeader.h>
++
++
+diff --git a/Device_iOS/Info.plist b/Device_iOS/Info.plist
+new file mode 100644
+index 0000000..d3de8ee
+--- /dev/null
++++ b/Device_iOS/Info.plist
+@@ -0,0 +1,26 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++	<key>CFBundleDevelopmentRegion</key>
++	<string>en</string>
++	<key>CFBundleExecutable</key>
++	<string>$(EXECUTABLE_NAME)</string>
++	<key>CFBundleIdentifier</key>
++	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
++	<key>CFBundleInfoDictionaryVersion</key>
++	<string>6.0</string>
++	<key>CFBundleName</key>
++	<string>$(PRODUCT_NAME)</string>
++	<key>CFBundlePackageType</key>
++	<string>FMWK</string>
++	<key>CFBundleShortVersionString</key>
++	<string>1.0</string>
++	<key>CFBundleSignature</key>
++	<string>????</string>
++	<key>CFBundleVersion</key>
++	<string>$(CURRENT_PROJECT_VERSION)</string>
++	<key>NSPrincipalClass</key>
++	<string></string>
++</dict>
++</plist>
+diff --git a/Device_iOSTests/Device_iOSTests.swift b/Device_iOSTests/Device_iOSTests.swift
+new file mode 100644
+index 0000000..1d456a5
+--- /dev/null
++++ b/Device_iOSTests/Device_iOSTests.swift
+@@ -0,0 +1,35 @@
++//
++//  DeviceTests.swift
++//  Basics
++//
++//  Created by Dennis Weissmann on 11/16/14.
++//  Copyright (c) 2015 Hot Action Studios. All rights reserved.
++//
++
++import XCTest
++@testable import Device
++
++class DeviceTests: XCTestCase {
++
++    func testDeviceSimulator() {
++        let device = Device()
++        XCTAssert(device == Device.Simulator)
++    }
++
++	func testDeviceDescription() {
++		XCTAssert(Device().description == "Simulator")
++	}
++
++	func testOperator1() {
++		XCTAssert(Device.BatteryState.Full > Device.BatteryState.Charging(100))
++	}
++
++	func testOperator2() {
++		XCTAssert(Device.BatteryState.Charging(75) != Device.BatteryState.Unplugged(75))
++	}
++
++	func testOperator3() {
++		XCTAssert(Device.BatteryState.Unplugged(2) > Device.BatteryState.Charging(1))
++	}
++
++}
+diff --git a/Device_iOSTests/Info.plist b/Device_iOSTests/Info.plist
+new file mode 100644
+index 0000000..ba72822
+--- /dev/null
++++ b/Device_iOSTests/Info.plist
+@@ -0,0 +1,24 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++	<key>CFBundleDevelopmentRegion</key>
++	<string>en</string>
++	<key>CFBundleExecutable</key>
++	<string>$(EXECUTABLE_NAME)</string>
++	<key>CFBundleIdentifier</key>
++	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
++	<key>CFBundleInfoDictionaryVersion</key>
++	<string>6.0</string>
++	<key>CFBundleName</key>
++	<string>$(PRODUCT_NAME)</string>
++	<key>CFBundlePackageType</key>
++	<string>BNDL</string>
++	<key>CFBundleShortVersionString</key>
++	<string>1.0</string>
++	<key>CFBundleSignature</key>
++	<string>????</string>
++	<key>CFBundleVersion</key>
++	<string>1</string>
++</dict>
++</plist>
+diff --git a/Device_tvOS/Device_tvOS.h b/Device_tvOS/Device_tvOS.h
+new file mode 100644
+index 0000000..036736f
+--- /dev/null
++++ b/Device_tvOS/Device_tvOS.h
+@@ -0,0 +1,19 @@
++//
++//  Device_tvOS.h
++//  Device_tvOS
++//
++//  Created by Dennis Weissmann on 11/17/15.
++//
++//
++
++#import <UIKit/UIKit.h>
++
++//! Project version number for Device_tvOS.
++FOUNDATION_EXPORT double Device_tvOSVersionNumber;
++
++//! Project version string for Device_tvOS.
++FOUNDATION_EXPORT const unsigned char Device_tvOSVersionString[];
++
++// In this header, you should import all the public headers of your framework using statements like #import <Device_tvOS/PublicHeader.h>
++
++
+diff --git a/Device_tvOS/Info.plist b/Device_tvOS/Info.plist
+new file mode 100644
+index 0000000..d3de8ee
+--- /dev/null
++++ b/Device_tvOS/Info.plist
+@@ -0,0 +1,26 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++	<key>CFBundleDevelopmentRegion</key>
++	<string>en</string>
++	<key>CFBundleExecutable</key>
++	<string>$(EXECUTABLE_NAME)</string>
++	<key>CFBundleIdentifier</key>
++	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
++	<key>CFBundleInfoDictionaryVersion</key>
++	<string>6.0</string>
++	<key>CFBundleName</key>
++	<string>$(PRODUCT_NAME)</string>
++	<key>CFBundlePackageType</key>
++	<string>FMWK</string>
++	<key>CFBundleShortVersionString</key>
++	<string>1.0</string>
++	<key>CFBundleSignature</key>
++	<string>????</string>
++	<key>CFBundleVersion</key>
++	<string>$(CURRENT_PROJECT_VERSION)</string>
++	<key>NSPrincipalClass</key>
++	<string></string>
++</dict>
++</plist>
+diff --git a/Device_tvOSTests/Device_tvOSTests.swift b/Device_tvOSTests/Device_tvOSTests.swift
+new file mode 100644
+index 0000000..cff34b8
+--- /dev/null
++++ b/Device_tvOSTests/Device_tvOSTests.swift
+@@ -0,0 +1,23 @@
++//
++//  Device_tvOSTests.swift
++//  Device_tvOSTests
++//
++//  Created by Dennis Weissmann on 11/17/15.
++//
++//
++
++import XCTest
++@testable import Device
++
++class Device_tvOSTests: XCTestCase {
++    
++    func testDeviceSimulator() {
++        let device = Device()
++        XCTAssert(device == .Simulator)
++    }
++    
++    func testDeviceDescription() {
++        XCTAssert(Device().description == "Simulator")
++    }
++    
++}
+diff --git a/Device_tvOSTests/Info.plist b/Device_tvOSTests/Info.plist
+new file mode 100644
+index 0000000..ba72822
+--- /dev/null
++++ b/Device_tvOSTests/Info.plist
+@@ -0,0 +1,24 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
++<plist version="1.0">
++<dict>
++	<key>CFBundleDevelopmentRegion</key>
++	<string>en</string>
++	<key>CFBundleExecutable</key>
++	<string>$(EXECUTABLE_NAME)</string>
++	<key>CFBundleIdentifier</key>
++	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
++	<key>CFBundleInfoDictionaryVersion</key>
++	<string>6.0</string>
++	<key>CFBundleName</key>
++	<string>$(PRODUCT_NAME)</string>
++	<key>CFBundlePackageType</key>
++	<string>BNDL</string>
++	<key>CFBundleShortVersionString</key>
++	<string>1.0</string>
++	<key>CFBundleSignature</key>
++	<string>????</string>
++	<key>CFBundleVersion</key>
++	<string>1</string>
++</dict>
++</plist>
+diff --git a/LICENSE b/LICENSE
+index 9a0521c..15f17df 100644
+--- a/LICENSE
++++ b/LICENSE
+@@ -1,3 +1,5 @@
++The MIT License (MIT)
++
+ Copyright (c) 2015 Dennis Weissmann
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+diff --git a/README.md b/README.md
+index 9aa92a4..44f5f9a 100644
+--- a/README.md
++++ b/README.md
+@@ -1,199 +1,36 @@
+-<img src="https://cdn.rawgit.com/dennisweissmann/DeviceKit/master/DeviceKit.svg" height="128">
++[![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/dennisweissmann/Device/master/LICENSE)
++[![Build Status](https://travis-ci.org/dennisweissmann/Device.svg)](https://travis-ci.org/dennisweissmann/Device)
++[![CocoaPods](https://img.shields.io/cocoapods/p/Device.svg)](https://travis-ci.org/dennisweissmann/Device)
+ 
+-[![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/dennisweissmann/DeviceKit/master/LICENSE)
+-[![CocoaPods Compatible](https://img.shields.io/cocoapods/v/DeviceKit.svg)](https://cocoapods.org/pods/DeviceKit)
+-[![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+-[![codecov](https://codecov.io/gh/dennisweissmann/DeviceKit/branch/master/graph/badge.svg)](https://codecov.io/gh/dennisweissmann/DeviceKit)
+-[![Maintainability](https://api.codeclimate.com/v1/badges/844e23a17bde71ff6be1/maintainability)](https://codeclimate.com/github/dennisweissmann/DeviceKit/maintainability)
+-[![Platform](https://img.shields.io/cocoapods/p/DeviceKit.svg?style=flat)](http://cocoadocs.org/docsets/DeviceKit)
+-
+-
+-| Branch | Build Status | Versions |
+-|:---------|:--------------:|:----------:|
+-| **master** |[![Build Status](https://travis-ci.org/dennisweissmann/DeviceKit.svg?branch=master)](https://travis-ci.org/dennisweissmann/DeviceKit)| - |
+-| **Swift 4** |[![Build Status](https://travis-ci.org/dennisweissmann/DeviceKit.svg?branch=swift-4)](https://travis-ci.org/dennisweissmann/DeviceKit)| ≥ 1.3.0 |
+-| **Swift 3** |[![Build Status](https://travis-ci.org/dennisweissmann/DeviceKit.svg?branch=swift-3)](https://travis-ci.org/dennisweissmann/DeviceKit)| ≥ 1.0 ≤ 1.2.3 |
+-| **Swift 2.3** |[![Build Status](https://travis-ci.org/dennisweissmann/DeviceKit.svg?branch=swift-2.3-unsupported)](https://travis-ci.org/dennisweissmann/DeviceKit)| < 1.0 |
+-
+-`DeviceKit` is a value-type replacement of [`UIDevice`](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/).
+-
+-## Features
+-
+-- [x] Device identification
+-- [x] Device family detection
+-- [x] Device group detection
+-- [x] Simulator detection
+-- [x] Battery state
+-- [x] Battery level
+-- [x] Equatable
++# What is this?
++`Device` is a value-type wrapper and extension of [`UIDevice`](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/).
+ 
+ ## Requirements
+-
+-- iOS 8.0+ / tvOS 9.0+ (linking against iOS 9.3 and tvOS 9.2 required)
+-- Xcode 8.0+
+-
+-## Installation
+-DeviceKit can be installed in various ways.
+-
+-### CocoaPods
+-
+-#### Swift 4
+-```ruby
+-pod 'DeviceKit', '~> 1.3'
+-```
+-#### Swift 3
+-```ruby
+-pod 'DeviceKit', '~> 1.2.3'
+-```
+-#### Swift 2.3 (Unsupported)
+-```ruby
+-pod 'DeviceKit', :git => 'https://github.com/dennisweissmann/DeviceKit.git', :branch => 'swift-2.3-unsupported'
+-```
+-
+-### Carthage
+-
+-#### Swift 4
+-```ogdl
+-github "dennisweissmann/DeviceKit" ~> 1.3
+-```
+-#### Swift 3
+-```ogdl
+-github "dennisweissmann/DeviceKit" ~> 1.2.3
+-```
+-#### Swift 2.3 (Unsupported)
+-```ogdl
+-github "dennisweissmann/DeviceKit" "swift-2.3-unsupported"
+-```
+-
+-### Manually
+-To install it manually, drag the `DeviceKit` project into your app project in Xcode. Or add it as a git submodule by running:
+-```bash
+-$ git submodule add https://github.com/dennisweissmann/DeviceKit.git
+-```
++Swift 2.0
+ 
+ ## Usage
+-First make sure to import the framework:
+-```swift
+-import DeviceKit
+-```
+-
+-Here are some usage examples. All devices are also available as simulators:
+-```swift
+-.iPhone6 => .simulator(.iPhone6)
+-.iPhone6s => .simulator(.iPhone6s)
+ ```
+-
+-You can try these examples in Playground.
+-
+-**Note:**
+-
+-> To try DeviceKit in playground, open the `DeviceKit.xcworkspace` and build DeviceKit.framework for any simulator first.
+-
+-### Get the Device You're Running On
+-```swift
+ let device = Device()
+ 
+-print(device)     // prints, for example, "iPhone 6 Plus"
++print(device)     // prints for example "iPhone 6 Plus"
+ 
+ if device == .iPhone6Plus {
+-  // Do something
++    // Do something
+ } else {
+-  // Do something else
+-}
+-```
+-
+-### Get the Device Family
+-```swift
+-let device = Device()
+-if device.isPod {
+-  // iPods (real or simulator)
+-} else if device.isPhone {
+-  // iPhone (real or simulator)
+-} else if device.isPad {
+-  // iPad (real or simulator)
++    // Do something else
+ }
+-```
+ 
+-### Check If Running on Simulator
+-```swift
+-let device = Device()
+-if device.isSimulator {
+-  // Running on one of the simulators(iPod/iPhone/iPad)
+-  // Skip doing something irrelevant for Simulator
+-} 
+-```
++...
+ 
+-### Get the Simulator Device
+-```swift
+-let device = Device()
+-switch device {
+-case .simulator(.iPhone6s): break // You're running on the iPhone 6s simulator
+-case .simulator(.iPadAir2): break // You're running on the iPad Air 2 simulator
+-default: break
+-}
+-```
+- 
+-### Make Sure the Device Is Contained in a Preconfigured Group
+-```swift
+-let groupOfAllowedDevices: [Device] = [.iPhone6, .iPhone6Plus, .iPhone6s, .iPhone6sPlus, .simulator(.iPhone6), .simulator(.iPhone6Plus), .simulator(.iPhone6s), .simulator(.iPhone6sPlus)]
+-let device = Device()
+- 
+-if device.isOneOf(groupOfAllowedDevices) {
+-  // Do your action
++if device.batteryState == .Full || device.batteryState >= .Charging(75) {
++    print("Your battery is happy! 😊")
+ }
+-```
+ 
+-### Get the Current Battery State
+-**Note:**
++...
+ 
+-> To get the current battery state we need to set `UIDevice.current.isBatteryMonitoringEnabled` to `true`. To avoid any issues with your code, we read the current setting and reset it to what it was before when we're done.
+-
+-```swift
+-if device.batteryState == .full || device.batteryState >= .charging(75) {
+-  print("Your battery is happy! 😊")
+-}
+-```
+-
+-### Get the Current Battery Level
+-```swift
+ if device.batteryLevel >= 50 {
+-  install_iOS()
+-} else {
+-  showError()
+-}
+-```
+-
+-### Get Low Power mode status
+-```swift
+-if device.batteryState.lowPowerMode {
+-  print("Low Power mode is enabled! 🔋")
+-} else {
+-  print("Low Power mode is disabled! 😊")
+-}
+-```
+-
+-### Check if a Guided Access session is currently active
+-```swift
+-if device.isGuidedAccessSessionActive {
+-  print("Guided Access session is currently active")
++    install_iOS()
+ } else {
+-  print("No Guided Access session is currently active")
++    showError()
+ }
+-```
+-
+-### Get Screen Brightness
+-```swift
+-if device.screenBrightness > 50 {
+-  print("Take care of your eyes!")
+-}
+-```
+-
+-## Source of Information
+-All model identifiers are taken from the following website: https://www.theiphonewiki.com/wiki/Models or extracted from the simulator app bundled with Xcode.
+-
+-## Contributing
+-If you have the need for a specific feature that you want implemented or if you experienced a bug, please open an issue.
+-If you extended the functionality of DeviceKit yourself and want others to use it too, please submit a pull request.
+-
+-## Contributors
+-The complete list of people who contributed to this project is available [here](https://github.com/dennisweissmann/DeviceKit/graphs/contributors). DeviceKit wouldn't be what it is without you! Thank you very much! 🙏
++```
+\ No newline at end of file
+diff --git a/SharedCode/Device.swift b/SharedCode/Device.swift
+new file mode 100644
+index 0000000..6e4ad10
+--- /dev/null
++++ b/SharedCode/Device.swift
+@@ -0,0 +1,397 @@
++//
++//  Device.swift
++//  Device
++//
++//  Created by Dennis Weissmann on 11/16/14.
++//  Copyright (c) 2014 Hot Action Studios. All rights reserved.
++//
++
++import class UIKit.UIDevice
++import struct Darwin.utsname
++import func Darwin.uname
++import func Darwin.round
++
++// MARK: - Device
++
++/// This enum is a value-type wrapper around and extension of [`UIDevice`](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/).
++///
++/// **Warning:** Requires Swift 2.0 (swiftlang-700.0.52.2 clang-700.0.65, ≥ Xcode 7.0 Beta 5)
++///
++/// This port is not yet complete and will be extended as I need further functionality. Feel free to extend it and send a pull request. Thanks! :)
++///
++/// Usage:
++///
++///     let device = Device()
++///
++///     print(device)     // prints for example "iPhone 6 Plus"
++///
++///     if device == .iPhone6Plus {
++///         // Do something
++///     } else {
++///         // Do something else
++///     }
++///
++///     ...
++///
++///     if device.batteryState == .Full || device.batteryState >= .Charging(75) {
++///         print("Your battery is happy! 😊")
++///     }
++///
++///     ...
++///
++///     if device.batteryLevel >= 50 {
++///         install_iOS()
++///     } else {
++///         showError()
++///     }
++///
++public enum Device {
++#if os(iOS)
++    /// Device is an [iPod Touch (5th generation)](https://support.apple.com/kb/SP657)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP657/sp657_ipod-touch_size.jpg)
++    case iPodTouch5
++    
++    /// Device is an [iPod Touch (6th generation)](https://support.apple.com/kb/SP720)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP720/SP720-ipod-touch-specs-color-sg-2015.jpg)
++    case iPodTouch6
++    
++    /// Device is an [iPhone 4](https://support.apple.com/kb/SP587)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP643/sp643_iphone4s_color_black.jpg)
++    case iPhone4
++    
++    /// Device is an [iPhone 4s](https://support.apple.com/kb/SP643)
++    ///
++    /// ![Image](https://support.apple.com/library/content/dam/edam/applecare/images/en_US/iphone/iphone5s/iphone_4s.png)
++    case iPhone4s
++    
++    /// Device is an [iPhone 5](https://support.apple.com/kb/SP655)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP655/sp655_iphone5_color.jpg)
++    case iPhone5
++    
++    /// Device is an [iPhone 5c](https://support.apple.com/kb/SP684)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP684/SP684-color_yellow.jpg)
++    case iPhone5c
++    
++    /// Device is an [iPhone 5s](https://support.apple.com/kb/SP685)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP685/SP685-color_black.jpg)
++    case iPhone5s
++    
++    /// Device is an [iPhone 6](https://support.apple.com/kb/SP705)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP705/SP705-iphone_6-mul.png)
++    case iPhone6
++    
++    /// Device is an [iPhone 6 Plus](https://support.apple.com/kb/SP706)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP706/SP706-iphone_6_plus-mul.png)
++    case iPhone6Plus
++    
++    /// Device is an [iPhone 6s](https://support.apple.com/kb/SP726)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP726/SP726-iphone6s-gray-select-2015.png)
++    case iPhone6s
++    
++    /// Device is an [iPhone 6s Plus](https://support.apple.com/kb/SP727)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP727/SP727-iphone6s-plus-gray-select-2015.png)
++    case iPhone6sPlus
++    
++    /// Device is an [iPad 2](https://support.apple.com/kb/SP622)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP622/SP622_01-ipad2-mul.png)
++    case iPad2
++    
++    /// Device is an [iPad (3rd generation)](https://support.apple.com/kb/SP647)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP662/sp662_ipad-4th-gen_color.jpg)
++    case iPad3
++    
++    /// Device is an [iPad (4th generation)](https://support.apple.com/kb/SP662)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP662/sp662_ipad-4th-gen_color.jpg)
++    case iPad4
++    
++    /// Device is an [iPad Air](https://support.apple.com/kb/SP692)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP692/SP692-specs_color-mul.png)
++    case iPadAir
++    
++    /// Device is an [iPad Air 2](https://support.apple.com/kb/SP708)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP708/SP708-space_gray.jpeg)
++    case iPadAir2
++    
++    /// Device is an [iPad Mini](https://support.apple.com/kb/SP661)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP661/sp661_ipad_mini_color.jpg)
++    case iPadMini
++    
++    /// Device is an [iPad Mini 2](https://support.apple.com/kb/SP693)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP693/SP693-specs_color-mul.png)
++    case iPadMini2
++    
++    /// Device is an [iPad Mini 3](https://support.apple.com/kb/SP709)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP709/SP709-space_gray.jpeg)
++    case iPadMini3
++    
++    /// Device is an [iPad Mini 4](https://support.apple.com/kb/SP725)
++    ///
++    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP725/SP725ipad-mini-4.png)
++    case iPadMini4
++    
++    /// Device is an [iPad Pro](http://www.apple.com/ipad-pro/)
++    ///
++    /// ![Image](http://images.apple.com/v/ipad-pro/c/images/shared/buystrip/ipad_pro_large_2x.png)
++    case iPadPro
++    
++#elseif os(tvOS)
++    /// Device is an [Apple TV](http://www.apple.com/tv/)
++    ///
++    /// ![Image](http://images.apple.com/v/tv/c/images/overview/buy_tv_large_2x.jpg)
++    case AppleTV4
++#endif
++    
++    /// Device is [Simulator](https://developer.apple.com/library/ios/documentation/IDEs/Conceptual/iOS_Simulator_Guide/Introduction/Introduction.html)
++    ///
++    /// ![Image](https://developer.apple.com/assets/elements/icons/256x256/xcode-6.png)
++    case Simulator
++
++    /// Device is not yet known (implemented)
++    /// You can still use this enum as before but the description equals the identifier (you can get multiple identifiers for the same product class (e.g. "iPhone6,1" or "iPhone 6,2" do both mean "iPhone 5s))
++    case UnknownDevice(String)
++    
++    public init() {
++        var systemInfo = utsname()
++        uname(&systemInfo)
++        let mirror = Mirror(reflecting: systemInfo.machine)
++        
++        // I know that reduce is O(n^2) (see http://airspeedvelocity.net/2015/08/03/arrays-linked-lists-and-performance/) but it's *so* nice ❤️ and since we are working with very short strings it shouldn't matter.
++        let identifier = mirror.children.reduce("") { identifier, element in
++            guard let value = element.value as? Int8 where value != 0 else { return identifier }
++            return identifier + String(UnicodeScalar(UInt8(value)))
++        }
++        
++        #if os(iOS)
++            switch identifier {
++            case "iPod5,1":                                 self = iPodTouch5
++            case "iPod7,1":                                 self = iPodTouch6
++            case "iPhone3,1", "iPhone3,2", "iPhone3,3":     self = iPhone4
++            case "iPhone4,1":                               self = iPhone4s
++            case "iPhone5,1", "iPhone5,2":                  self = iPhone5
++            case "iPhone5,3", "iPhone5,4":                  self = iPhone5c
++            case "iPhone6,1", "iPhone6,2":                  self = iPhone5s
++            case "iPhone7,2":                               self = iPhone6
++            case "iPhone7,1":                               self = iPhone6Plus
++            case "iPhone8,1":                               self = iPhone6s
++            case "iPhone8,2":                               self = iPhone6sPlus
++            case "iPad2,1", "iPad2,2", "iPad2,3", "iPad2,4":self = iPad2
++            case "iPad3,1", "iPad3,2", "iPad3,3":           self = iPad3
++            case "iPad3,4", "iPad3,5", "iPad3,6":           self = iPad4
++            case "iPad4,1", "iPad4,2", "iPad4,3":           self = iPadAir
++            case "iPad5,3", "iPad5,4":                      self = iPadAir2
++            case "iPad2,5", "iPad2,6", "iPad2,7":           self = iPadMini
++            case "iPad4,4", "iPad4,5", "iPad4,6":           self = iPadMini2
++            case "iPad4,7", "iPad4,8", "iPad4,9":           self = iPadMini3
++            case "iPad5,1", "iPad5,2":                      self = iPadMini4
++            case "iPad6,7", "iPad6,8":                      self = iPadPro
++            case "i386", "x86_64":                          self = Simulator
++            default:                                        self = UnknownDevice(identifier)
++            }
++        #elseif os(tvOS)
++            switch identifier {
++            case "AppleTV5,3":                              self = AppleTV4
++            case "i386", "x86_64":                          self = Simulator
++            default:                                        self = UnknownDevice(identifier)
++            }
++        #endif
++    }
++    
++    /// The style of interface to use on the current device.
++    /// This is pretty useless right now since it does not add any further functionality to the existing [UIUserInterfaceIdiom](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/#//apple_ref/c/tdef/UIUserInterfaceIdiom) enum.
++    public enum UserInterfaceIdiom {
++        
++        /// The user interface should be designed for iPhone and iPod touch.
++        case Phone
++        /// The user interface should be designed for iPad.
++        case Pad
++        /// The user interface should be designed for TV
++        case TV
++        /// Used when an object has a trait collection, but it is not in an environment yet. For example, a view that is created, but not put into a view hierarchy.
++        case Unspecified
++        
++        private init() {
++            switch UIDevice.currentDevice().userInterfaceIdiom {
++            case .Pad:          self = .Pad
++            case .Phone:        self = .Phone
++            case .TV:           self = .TV
++            case .Unspecified:  self = .Unspecified
++            }
++        }
++        
++    }
++    
++    /// The name identifying the device.
++    var name: String {
++        return UIDevice.currentDevice().name
++    }
++    
++    /// The name of the operating system running on the device represented by the receiver.
++    var systemName: String {
++        return UIDevice.currentDevice().systemName
++    }
++    
++    /// The current version of the operating system.
++    var systemVersion: String {
++        return UIDevice.currentDevice().systemVersion
++    }
++    
++    /// The model of the device.
++    var model: String {
++        return UIDevice.currentDevice().model
++    }
++    
++    /// The model of the device as a localized string.
++    var localizedModel: String {
++        return UIDevice.currentDevice().localizedModel
++    }
++    
++    /// The model of the device including the generation (if != 1).
++    var detailedModel: String {
++        return description
++    }
++    
++}
++
++// MARK: - CustomStringConvertible
++extension Device: CustomStringConvertible {
++    
++    public var description: String {
++        #if os(iOS)
++            switch self {
++            case .iPodTouch5:                   return "iPod Touch 5"
++            case .iPodTouch6:                   return "iPod Touch 6"
++            case .iPhone4:                      return "iPhone 4"
++            case .iPhone4s:                     return "iPhone 4s"
++            case .iPhone5:                      return "iPhone 5"
++            case .iPhone5c:                     return "iPhone 5c"
++            case .iPhone5s:                     return "iPhone 5s"
++            case .iPhone6:                      return "iPhone 6"
++            case .iPhone6Plus:                  return "iPhone 6 Plus"
++            case .iPhone6s:                     return "iPhone 6s"
++            case .iPhone6sPlus:                 return "iPhone 6s Plus"
++            case .iPad2:                        return "iPad 2"
++            case .iPad3:                        return "iPad 3"
++            case .iPad4:                        return "iPad 4"
++            case .iPadAir:                      return "iPad Air"
++            case .iPadAir2:                     return "iPad Air 2"
++            case .iPadMini:                     return "iPad Mini"
++            case .iPadMini2:                    return "iPad Mini 2"
++            case .iPadMini3:                    return "iPad Mini 3"
++            case .iPadMini4:                    return "iPad Mini 4"
++            case .iPadPro:                      return "iPad Pro"
++            case .Simulator:                    return "Simulator"
++            case .UnknownDevice(let identifier):return identifier
++            }
++        #elseif os(tvOS)
++            switch self {
++            case .AppleTV4:                     return "Apple TV 4"
++            case .Simulator:                    return "Simulator"
++            case .UnknownDevice(let identifier):return identifier
++            }
++        #endif
++    }
++}
++// MARK: - Equatable
++extension Device: Equatable {}
++
++public func ==(lhs: Device, rhs: Device) -> Bool {
++    return lhs.description == rhs.description
++}
++
++#if os(iOS)
++// MARK: - Battery
++extension Device {
++    /**
++     This enum describes the state of the battery.
++     
++     - Full:      The device is plugged into power and the battery is 100% charged or the device is the iOS Simulator.
++     - Charging:  The device is plugged into power and the battery is less than 100% charged.
++     - Unplugged: The device is not plugged into power; the battery is discharging.
++     */
++    public enum BatteryState: CustomStringConvertible, Equatable {
++        /// The device is plugged into power and the battery is 100% charged or the device is the iOS Simulator.
++        case Full
++        /// The device is plugged into power and the battery is less than 100% charged.
++        /// The associated value is in percent.
++        case Charging(Double)
++        /// The device is not plugged into power; the battery is discharging.
++        /// The associated value is in percent.
++        case Unplugged(Double)
++        
++        private init() {
++            UIDevice.currentDevice().batteryMonitoringEnabled = true
++            let batteryLevel = Double(round(100 * (UIDevice.currentDevice().batteryLevel * 100)) / 100)     // rounded, with 2 digits precision
++            
++            switch UIDevice.currentDevice().batteryState {
++            case .Charging: self = .Charging(batteryLevel)
++            case .Full:     self = .Full
++            case .Unplugged:self = .Unplugged(batteryLevel)
++            case .Unknown:  self = .Full    // Should never happen since `batteryMonitoring` is enabled.
++            }
++            UIDevice.currentDevice().batteryMonitoringEnabled = false
++        }
++        
++        public var description: String {
++            switch self {
++            case .Charging(let batteryLevel):   return "Battery level: \(batteryLevel)%, device is plugged in."
++            case .Full:                         return "Battery level: 100 % (Full), device is plugged in."
++            case .Unplugged(let batteryLevel):  return "Battery level: \(batteryLevel)%, device is unplugged."
++            }
++        }
++        
++    }
++    
++    /// The state of the battery
++    public var batteryState: BatteryState {
++        return BatteryState()
++    }
++    
++    /// Battery level ranges from 0.0 (fully discharged) to 100.0 (100% charged).
++    public var batteryLevel: Double {
++        switch BatteryState() {
++        case .Charging(let value):  return value
++        case .Full:                 return 100
++        case .Unplugged(let value): return value
++        }
++    }
++    
++}
++
++
++// MARK: - Device.Batterystate: Comparable
++extension Device.BatteryState: Comparable {}
++
++public func ==(lhs: Device.BatteryState, rhs: Device.BatteryState) -> Bool {
++    return lhs.description == rhs.description
++}
++
++public func <(lhs: Device.BatteryState, rhs: Device.BatteryState) -> Bool {
++    switch (lhs, rhs) {
++    case (.Full, _):                                            return false                // return false (even if both are `.Full` -> they are equal)
++    case (_, .Full):                                            return true                 // lhs is *not* `.Full`, rhs is
++    case (.Charging(let lhsLevel), .Charging(let rhsLevel)):    return lhsLevel < rhsLevel
++    case (.Charging(let lhsLevel), .Unplugged(let rhsLevel)):   return lhsLevel < rhsLevel
++    case (.Unplugged(let lhsLevel), .Charging(let rhsLevel)):   return lhsLevel < rhsLevel
++    case (.Unplugged(let lhsLevel), .Unplugged(let rhsLevel)):  return lhsLevel < rhsLevel
++    default:                                                    return false                // compiler won't compile without it, though it cannot happen
++    }
++}
++#endif
+diff --git a/Source/Device.swift b/Source/Device.swift
+deleted file mode 100644
+index e54f2b8..0000000
+--- a/Source/Device.swift
++++ /dev/null
+@@ -1,518 +0,0 @@
+-//
+-//  Device.swift
+-//  DeviceKit
+-//
+-//  Created by Dennis Weissmann on 11/16/14.
+-//  Copyright (c) 2014 Hot Action Studios. All rights reserved.
+-//
+-
+-import class UIKit.UIDevice
+-import struct Darwin.utsname
+-import func Darwin.uname
+-import func Darwin.round
+-import func Darwin.getenv
+-
+-// MARK: - Device
+-
+-/// This enum is a value-type wrapper around and extension of
+-/// [`UIDevice`](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/).
+-///
+-/// This port is not yet complete and will be extended as I need further functionality. Feel free to extend it and send a pull request. Thanks! :)
+-///
+-/// Usage:
+-///
+-///     let device = Device()
+-///
+-///     print(device)     // prints, for example, "iPhone 6 Plus"
+-///
+-///     if device == .iPhone6Plus {
+-///         // Do something
+-///     } else {
+-///         // Do something else
+-///     }
+-///
+-///     ...
+-///
+-///     if device.batteryState == .Full || device.batteryState >= .Charging(75) {
+-///         print("Your battery is happy! 😊")
+-///     }
+-///
+-///     ...
+-///
+-///     if device.batteryLevel >= 50 {
+-///         install_iOS()
+-///     } else {
+-///         showError()
+-///     }
+-///
+-public enum Device {
+-#if os(iOS)
+-    /// Device is an [iPod Touch (5th generation)](https://support.apple.com/kb/SP657)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP657/sp657_ipod-touch_size.jpg)
+-    case iPodTouch5
+-
+-    /// Device is an [iPod Touch (6th generation)](https://support.apple.com/kb/SP720)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP720/SP720-ipod-touch-specs-color-sg-2015.jpg)
+-    case iPodTouch6
+-
+-    /// Device is an [iPhone 4](https://support.apple.com/kb/SP587)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP643/sp643_iphone4s_color_black.jpg)
+-    case iPhone4
+-
+-    /// Device is an [iPhone 4s](https://support.apple.com/kb/SP643)
+-    ///
+-    /// ![Image](https://support.apple.com/library/content/dam/edam/applecare/images/en_US/iphone/iphone5s/iphone_4s.png)
+-    case iPhone4s
+-
+-    /// Device is an [iPhone 5](https://support.apple.com/kb/SP655)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP655/sp655_iphone5_color.jpg)
+-    case iPhone5
+-
+-    /// Device is an [iPhone 5c](https://support.apple.com/kb/SP684)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP684/SP684-color_yellow.jpg)
+-    case iPhone5c
+-
+-    /// Device is an [iPhone 5s](https://support.apple.com/kb/SP685)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP685/SP685-color_black.jpg)
+-    case iPhone5s
+-
+-    /// Device is an [iPhone 6](https://support.apple.com/kb/SP705)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP705/SP705-iphone_6-mul.png)
+-    case iPhone6
+-
+-    /// Device is an [iPhone 6 Plus](https://support.apple.com/kb/SP706)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP706/SP706-iphone_6_plus-mul.png)
+-    case iPhone6Plus
+-
+-    /// Device is an [iPhone 6s](https://support.apple.com/kb/SP726)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP726/SP726-iphone6s-gray-select-2015.png)
+-    case iPhone6s
+-
+-    /// Device is an [iPhone 6s Plus](https://support.apple.com/kb/SP727)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP727/SP727-iphone6s-plus-gray-select-2015.png)
+-    case iPhone6sPlus
+-
+-    /// Device is an [iPhone SE](https://support.apple.com/kb/SP738???) TODO: Spec page not posted yet
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/???) TODO: Image page not posted yet
+-    case iPhoneSE
+-
+-    /// Device is an [iPad 2](https://support.apple.com/kb/SP622)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP622/SP622_01-ipad2-mul.png)
+-    case iPad2
+-
+-    /// Device is an [iPad (3rd generation)](https://support.apple.com/kb/SP647)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP662/sp662_ipad-4th-gen_color.jpg)
+-    case iPad3
+-
+-    /// Device is an [iPad (4th generation)](https://support.apple.com/kb/SP662)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP662/sp662_ipad-4th-gen_color.jpg)
+-    case iPad4
+-
+-    /// Device is an [iPad Air](https://support.apple.com/kb/SP692)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP692/SP692-specs_color-mul.png)
+-    case iPadAir
+-
+-    /// Device is an [iPad Air 2](https://support.apple.com/kb/SP708)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP708/SP708-space_gray.jpeg)
+-    case iPadAir2
+-
+-    /// Device is an [iPad Mini](https://support.apple.com/kb/SP661)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP661/sp661_ipad_mini_color.jpg)
+-    case iPadMini
+-
+-    /// Device is an [iPad Mini 2](https://support.apple.com/kb/SP693)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP693/SP693-specs_color-mul.png)
+-    case iPadMini2
+-
+-    /// Device is an [iPad Mini 3](https://support.apple.com/kb/SP709)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP709/SP709-space_gray.jpeg)
+-    case iPadMini3
+-
+-    /// Device is an [iPad Mini 4](https://support.apple.com/kb/SP725)
+-    ///
+-    /// ![Image](https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP725/SP725ipad-mini-4.png)
+-    case iPadMini4
+-
+-    /// Device is an [iPad Pro](http://www.apple.com/ipad-pro/)
+-    ///
+-    /// ![Image](http://images.apple.com/v/ipad-pro/c/images/shared/buystrip/ipad_pro_large_2x.png)
+-    case iPadPro
+-
+-#elseif os(tvOS)
+-    /// Device is an [Apple TV](http://www.apple.com/tv/)
+-    ///
+-    /// ![Image](http://images.apple.com/v/tv/c/images/overview/buy_tv_large_2x.jpg)
+-    case appleTV4
+-#endif
+-
+-    /// Device is [Simulator](https://developer.apple.com/library/ios/documentation/IDEs/Conceptual/iOS_Simulator_Guide/Introduction/Introduction.html)
+-    ///
+-    /// ![Image](https://developer.apple.com/assets/elements/icons/256x256/xcode-6.png)
+-    indirect case simulator(Device)
+-
+-    /// Device is not yet known (implemented)
+-    /// You can still use this enum as before but the description equals the identifier (you can get multiple identifiers for the same product class (e.g. "iPhone6,1" or "iPhone 6,2" do both mean "iPhone 5s))
+-    case unknownDevice(String)
+-
+-    public init() {
+-        var systemInfo = utsname()
+-        uname(&systemInfo)
+-        let mirror = Mirror(reflecting: systemInfo.machine)
+-
+-        // I know that reduce is O(n^2) (see http://airspeedvelocity.net/2015/08/03/arrays-linked-lists-and-performance/) but it's *so* nice ❤️ and since we are working with very short strings it shouldn't matter.
+-        let identifier = mirror.children.reduce("") { identifier, element in
+-            guard let value = element.value as? Int8,
+-                      value != 0 else { return identifier }
+-            return identifier + String(UnicodeScalar(UInt8(value)))
+-        }
+-
+-        func mapIdentifierToDevice(_ identifier: String) -> Device {
+-            #if os(iOS)
+-                switch identifier {
+-                case "iPod5,1":                                 return .iPodTouch5
+-                case "iPod7,1":                                 return .iPodTouch6
+-                case "iPhone3,1", "iPhone3,2", "iPhone3,3":     return .iPhone4
+-                case "iPhone4,1":                               return .iPhone4s
+-                case "iPhone5,1", "iPhone5,2":                  return .iPhone5
+-                case "iPhone5,3", "iPhone5,4":                  return .iPhone5c
+-                case "iPhone6,1", "iPhone6,2":                  return .iPhone5s
+-                case "iPhone7,2":                               return .iPhone6
+-                case "iPhone7,1":                               return .iPhone6Plus
+-                case "iPhone8,1":                               return .iPhone6s
+-                case "iPhone8,2":                               return .iPhone6sPlus
+-                case "iPhone8,4":                               return .iPhoneSE
+-                case "iPad2,1", "iPad2,2", "iPad2,3", "iPad2,4":return .iPad2
+-                case "iPad3,1", "iPad3,2", "iPad3,3":           return .iPad3
+-                case "iPad3,4", "iPad3,5", "iPad3,6":           return .iPad4
+-                case "iPad4,1", "iPad4,2", "iPad4,3":           return .iPadAir
+-                case "iPad5,3", "iPad5,4":                      return .iPadAir2
+-                case "iPad2,5", "iPad2,6", "iPad2,7":           return .iPadMini
+-                case "iPad4,4", "iPad4,5", "iPad4,6":           return .iPadMini2
+-                case "iPad4,7", "iPad4,8", "iPad4,9":           return .iPadMini3
+-                case "iPad5,1", "iPad5,2":                      return .iPadMini4
+-                case "iPad6,3", "iPad6,4", "iPad6,7", "iPad6,8":return .iPadPro
+-                case "i386", "x86_64":                          return .simulator(mapIdentifierToDevice(String(validatingUTF8: getenv("SIMULATOR_MODEL_IDENTIFIER"))!))
+-                default:                                        return .unknownDevice(identifier)
+-                }
+-            #elseif os(tvOS)
+-                switch identifier {
+-                case "AppleTV5,3":                              return .appleTV4
+-                case "i386", "x86_64":                          return .simulator(mapIdentifierToDevice(String(validatingUTF8: getenv("SIMULATOR_MODEL_IDENTIFIER"))!))
+-                default:                                        return .unknownDevice(identifier)
+-                }
+-            #endif
+-        }
+-        self = mapIdentifierToDevice(identifier)
+-    }
+-
+-    #if os(iOS)
+-    public static var allPods: [Device] {
+-        return [.iPodTouch5, .iPodTouch6]
+-    }
+-
+-    /// All iPhones
+-    public static var allPhones: [Device] {
+-        return [.iPhone4, iPhone4s, .iPhone5, .iPhone5s, .iPhone6, .iPhone6Plus, .iPhone6s, .iPhone6sPlus, .iPhoneSE]
+-    }
+-
+-    /// All iPads
+-    public static var allPads: [Device] {
+-        return [.iPad2, .iPad3, .iPad4, .iPadAir, .iPadAir2, .iPadMini, .iPadMini2, .iPadMini3, .iPadMini4, .iPadPro]
+-    }
+-
+-    /// All simulator iPods
+-    public static var allSimulatorPods: [Device] {
+-        return allPods.map(Device.simulator)
+-    }
+-
+-    /// All simulator iPhones
+-    public static var allSimulatorPhones: [Device] {
+-        return allPhones.map(Device.simulator)
+-    }
+-
+-    /// All simulator iPads
+-    public static var allSimulatorPads: [Device] {
+-        return allPads.map(Device.simulator)
+-    }
+-
+-    /// Return whether the device is an iPod (real or simulator)
+-    public var isPod: Bool {
+-        return self.isOneOf(Device.allPods) || self.isOneOf(Device.allSimulatorPods)
+-    }
+-
+-    /// Return whether the device is an iPhone (real or simulator)
+-    public var isPhone: Bool {
+-        return self.isOneOf(Device.allPhones) || self.isOneOf(Device.allSimulatorPhones)
+-    }
+-
+-    /// Return whether the device is an iPad (real or simulator)
+-    public var isPad: Bool {
+-        return self.isOneOf(Device.allPads) || self.isOneOf(Device.allSimulatorPads)
+-    }
+-
+-    /// Return whether the device is any of the simulator
+-    /// Useful when there is a need to check and skip running a portion of code (location request or others)
+-    public var isSimulator: Bool {
+-        return self.isOneOf(Device.allSimulators)
+-    }
+-
+-
+-    #elseif os(tvOS)
+-    /// All TVs
+-    public static var allTVs: [Device] {
+-        return [.appleTV4]
+-    }
+-
+-    /// All simulator TVs
+-    public static var allSimulatorTVs: [Device] {
+-        return allTVs.map(Device.simulator)
+-    }
+-    #endif
+-
+-    /// All real devices (i.e. all devices except for all simulators)
+-    public static var allRealDevices: [Device] {
+-        #if os(iOS)
+-            return allPods + allPhones + allPads
+-        #elseif os(tvOS)
+-            return allTVs
+-        #endif
+-    }
+-
+-    /// All simulators
+-    public static var allSimulators: [Device] {
+-        return allRealDevices.map(Device.simulator)
+-    }
+-
+-    /**
+-     This method saves you in many cases from the need of updating your code with every new device.
+-     Most uses for an enum like this are the following:
+-
+-     ```
+-     switch Device() {
+-     case .iPodTouch5, .iPodTouch6: callMethodOnIPods()
+-     case .iPhone4, iPhone4s, .iPhone5, .iPhone5s, .iPhone6, .iPhone6Plus, .iPhone6s, .iPhone6sPlus, .iPhoneSE: callMethodOnIPhones()
+-     case .iPad2, .iPad3, .iPad4, .iPadAir, .iPadAir2, .iPadMini, .iPadMini2, .iPadMini3, .iPadMini4, .iPadPro: callMethodOnIPads()
+-     default: break
+-     }
+-     ```
+-     This code can now be replaced with
+-
+-     ```
+-     let device = Device()
+-     if device.isOneOf(Device.allPods) {
+-     callMethodOnIPods()
+-     } else if device.isOneOf(Device.allPhones) {
+-     callMethodOnIPhones()
+-     } else if device.isOneOf(Device.allPads) {
+-     callMethodOnIPads()
+-     }
+-     ```
+-
+-     - parameter devices: An array of devices.
+-
+-     - returns: Returns whether the current device is one of the passed in ones.
+-     */
+-    public func isOneOf(_ devices: [Device]) -> Bool {
+-        return devices.contains(self)
+-    }
+-
+-    /// The style of interface to use on the current device.
+-    /// This is pretty useless right now since it does not add any further functionality to the existing
+-    /// [UIUserInterfaceIdiom](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIDevice_Class/#//apple_ref/c/tdef/UIUserInterfaceIdiom) enum.
+-    public enum UserInterfaceIdiom {
+-
+-        /// The user interface should be designed for iPhone and iPod touch.
+-        case phone
+-        /// The user interface should be designed for iPad.
+-        case pad
+-        /// The user interface should be designed for TV
+-        case tv
+-        /// The user interface should be designed for Car
+-        case carPlay
+-        /// Used when an object has a trait collection, but it is not in an environment yet. For example, a view that is created, but not put into a view hierarchy.
+-        case unspecified
+-
+-        private init() {
+-            switch UIDevice.current().userInterfaceIdiom {
+-            case .pad:          self = .pad
+-            case .phone:        self = .phone
+-            case .tv:           self = .tv
+-            case .carPlay:      self = .carPlay
+-            default:            self = .unspecified
+-            }
+-        }
+-
+-    }
+-
+-    /// The name identifying the device (e.g. "Dennis' iPhone").
+-    public var name: String {
+-        return UIDevice.current().name
+-    }
+-
+-    /// The name of the operating system running on the device represented by the receiver (e.g. "iPhone OS" or "tvOS").
+-    public var systemName: String {
+-        return UIDevice.current().systemName
+-    }
+-
+-    /// The current version of the operating system (e.g. 8.4 or 9.2).
+-    public var systemVersion: String {
+-        return UIDevice.current().systemVersion
+-    }
+-
+-    /// The model of the device (e.g. "iPhone" or "iPod Touch").
+-    public var model: String {
+-        return UIDevice.current().model
+-    }
+-
+-    /// The model of the device as a localized string.
+-    public var localizedModel: String {
+-        return UIDevice.current().localizedModel
+-    }
+-
+-}
+-
+-// MARK: - CustomStringConvertible
+-extension Device: CustomStringConvertible {
+-
+-    public var description: String {
+-        #if os(iOS)
+-            switch self {
+-            case .iPodTouch5:                   return "iPod Touch 5"
+-            case .iPodTouch6:                   return "iPod Touch 6"
+-            case .iPhone4:                      return "iPhone 4"
+-            case .iPhone4s:                     return "iPhone 4s"
+-            case .iPhone5:                      return "iPhone 5"
+-            case .iPhone5c:                     return "iPhone 5c"
+-            case .iPhone5s:                     return "iPhone 5s"
+-            case .iPhone6:                      return "iPhone 6"
+-            case .iPhone6Plus:                  return "iPhone 6 Plus"
+-            case .iPhone6s:                     return "iPhone 6s"
+-            case .iPhone6sPlus:                 return "iPhone 6s Plus"
+-            case .iPhoneSE:                     return "iPhone SE"
+-            case .iPad2:                        return "iPad 2"
+-            case .iPad3:                        return "iPad 3"
+-            case .iPad4:                        return "iPad 4"
+-            case .iPadAir:                      return "iPad Air"
+-            case .iPadAir2:                     return "iPad Air 2"
+-            case .iPadMini:                     return "iPad Mini"
+-            case .iPadMini2:                    return "iPad Mini 2"
+-            case .iPadMini3:                    return "iPad Mini 3"
+-            case .iPadMini4:                    return "iPad Mini 4"
+-            case .iPadPro:                      return "iPad Pro"
+-            case .simulator(let model):         return "Simulator (\(model))"
+-            case .unknownDevice(let identifier):return identifier
+-            }
+-        #elseif os(tvOS)
+-            switch self {
+-            case .appleTV4:                     return "Apple TV 4"
+-            case .simulator(let model):         return "Simulator (\(model))"
+-            case .unknownDevice(let identifier):return identifier
+-            }
+-        #endif
+-    }
+-}
+-
+-// MARK: - Equatable
+-extension Device: Equatable {}
+-
+-public func == (lhs: Device, rhs: Device) -> Bool {
+-    return lhs.description == rhs.description
+-}
+-
+-#if os(iOS)
+-// MARK: - Battery
+-extension Device {
+-    /**
+-     This enum describes the state of the battery.
+-
+-     - Full:      The device is plugged into power and the battery is 100% charged or the device is the iOS Simulator.
+-     - Charging:  The device is plugged into power and the battery is less than 100% charged.
+-     - Unplugged: The device is not plugged into power; the battery is discharging.
+-     */
+-    public enum BatteryState: CustomStringConvertible, Equatable {
+-        /// The device is plugged into power and the battery is 100% charged or the device is the iOS Simulator.
+-        case full
+-        /// The device is plugged into power and the battery is less than 100% charged.
+-        /// The associated value is in percent (0-100).
+-        case charging(Int)
+-        /// The device is not plugged into power; the battery is discharging.
+-        /// The associated value is in percent (0-100).
+-        case unplugged(Int)
+-
+-        fileprivate init() {
+-            UIDevice.current().isBatteryMonitoringEnabled = true
+-            let batteryLevel = Int(round(UIDevice.current().batteryLevel * 100))  // round() is actually not needed anymore since -[batteryLevel] seems to always return a two-digit precision number
+-                                                                                        // but maybe that changes in the future.
+-            switch UIDevice.current().batteryState {
+-            case .charging: self = .charging(batteryLevel)
+-            case .full:     self = .full
+-            case .unplugged:self = .unplugged(batteryLevel)
+-            case .unknown:  self = .full    // Should never happen since `batteryMonitoring` is enabled.
+-            }
+-            UIDevice.current().isBatteryMonitoringEnabled = false
+-        }
+-
+-        public var description: String {
+-            switch self {
+-            case .charging(let batteryLevel):   return "Battery level: \(batteryLevel)%, device is plugged in."
+-            case .full:                         return "Battery level: 100 % (Full), device is plugged in."
+-            case .unplugged(let batteryLevel):  return "Battery level: \(batteryLevel)%, device is unplugged."
+-            }
+-        }
+-
+-    }
+-
+-    /// The state of the battery
+-    public var batteryState: BatteryState {
+-        return BatteryState()
+-    }
+-
+-    /// Battery level ranges from 0 (fully discharged) to 100 (100% charged).
+-    public var batteryLevel: Int {
+-        switch BatteryState() {
+-        case .charging(let value):  return value
+-        case .full:                 return 100
+-        case .unplugged(let value): return value
+-        }
+-    }
+-
+-}
+-
+-// MARK: - Device.Batterystate: Comparable
+-extension Device.BatteryState: Comparable {}
+-
+-public func == (lhs: Device.BatteryState, rhs: Device.BatteryState) -> Bool {
+-    return lhs.description == rhs.description
+-}
+-
+-public func < (lhs: Device.BatteryState, rhs: Device.BatteryState) -> Bool {
+-    switch (lhs, rhs) {
+-    case (.full, _):                                            return false                // return false (even if both are `.Full` -> they are equal)
+-    case (_, .full):                                            return true                 // lhs is *not* `.Full`, rhs is
+-    case (.charging(let lhsLevel), .charging(let rhsLevel)):    return lhsLevel < rhsLevel
+-    case (.charging(let lhsLevel), .unplugged(let rhsLevel)):   return lhsLevel < rhsLevel
+-    case (.unplugged(let lhsLevel), .charging(let rhsLevel)):   return lhsLevel < rhsLevel
+-    case (.unplugged(let lhsLevel), .unplugged(let rhsLevel)):  return lhsLevel < rhsLevel
+-    default:                                                    return false                // compiler won't compile without it, though it cannot happen
+-    }
+-}
+-#endif
+diff --git a/Source/Info.plist b/Source/Info.plist
+deleted file mode 100644
+index 01a700f..0000000
+--- a/Source/Info.plist
++++ /dev/null
+@@ -1,26 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+-<plist version="1.0">
+-<dict>
+-	<key>CFBundleDevelopmentRegion</key>
+-	<string>en</string>
+-	<key>CFBundleExecutable</key>
+-	<string>$(EXECUTABLE_NAME)</string>
+-	<key>CFBundleIdentifier</key>
+-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+-	<key>CFBundleInfoDictionaryVersion</key>
+-	<string>6.0</string>
+-	<key>CFBundleName</key>
+-	<string>$(PRODUCT_NAME)</string>
+-	<key>CFBundlePackageType</key>
+-	<string>FMWK</string>
+-	<key>CFBundleShortVersionString</key>
+-	<string>1.7.0</string>
+-	<key>CFBundleSignature</key>
+-	<string>????</string>
+-	<key>CFBundleVersion</key>
+-	<string>$(CURRENT_PROJECT_VERSION)</string>
+-	<key>NSPrincipalClass</key>
+-	<string></string>
+-</dict>
+-</plist>
+diff --git a/Tests/Info.plist b/Tests/Info.plist
+deleted file mode 100644
+index ba72822..0000000
+--- a/Tests/Info.plist
++++ /dev/null
+@@ -1,24 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+-<plist version="1.0">
+-<dict>
+-	<key>CFBundleDevelopmentRegion</key>
+-	<string>en</string>
+-	<key>CFBundleExecutable</key>
+-	<string>$(EXECUTABLE_NAME)</string>
+-	<key>CFBundleIdentifier</key>
+-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+-	<key>CFBundleInfoDictionaryVersion</key>
+-	<string>6.0</string>
+-	<key>CFBundleName</key>
+-	<string>$(PRODUCT_NAME)</string>
+-	<key>CFBundlePackageType</key>
+-	<string>BNDL</string>
+-	<key>CFBundleShortVersionString</key>
+-	<string>1.0</string>
+-	<key>CFBundleSignature</key>
+-	<string>????</string>
+-	<key>CFBundleVersion</key>
+-	<string>1</string>
+-</dict>
+-</plist>
+--
+Working Copy 3.4.3
+

@@ -1,0 +1,47 @@
+From 6f55a6e0186d459872b8100b60e31cf0380dafb8 Mon Sep 17 00:00:00 2001
+From: Kaden Wilkinson <wilkinson.kaden@gmail.com>
+Date: Thu, 5 Jan 2017 00:26:58 -0700
+Subject: [PATCH] [Swift 3.0] Fix crash for looking up sim id on real device (#62)
+
+* Fix crash for looking up sim id on real device
+
+* Use better API to get env var that won't crash
+
+* change unknown to os name
+
+* Fix line length and lowercase the sim enum
+
+* Remove NS prefix for Swift 3
+---
+ Source/Device.swift | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/Source/Device.swift b/Source/Device.swift
+index 2126c14..7501c97 100644
+--- a/Source/Device.swift
++++ b/Source/Device.swift
+@@ -239,15 +239,17 @@ public enum Device {
+       case "iPad5,1", "iPad5,2":                      return iPadMini4
+       case "iPad6,3", "iPad6,4":                      return iPadPro9Inch
+       case "iPad6,7", "iPad6,8":                      return iPadPro12Inch
+-      // swiftlint:disable:next force_unwrapping
+-      case "i386", "x86_64":                          return simulator(mapToDevice(identifier: String(validatingUTF8: getenv("SIMULATOR_MODEL_IDENTIFIER"))!))
++      case "i386", "x86_64":                          return simulator(mapToDevice(
++                                                        identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "iOS"
++                                                      ))
+       default:                                        return unknown(identifier)
+       }
+     #elseif os(tvOS)
+       switch identifier {
+       case "AppleTV5,3":                              return appleTV4
+-      // swiftlint:disable:next force_unwrapping
+-      case "i386", "x86_64":                          return simulator(mapToDevice(identifier: String(validatingUTF8: getenv("SIMULATOR_MODEL_IDENTIFIER"))!))
++      case "i386", "x86_64":                          return simulator(mapToDevice(
++                                                        identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "tvOS"
++                                                      ))
+       default:                                        return unknown(identifier)
+       }
+     #endif
+--
+Working Copy 3.4.3
+

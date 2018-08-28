@@ -1,36 +1,5 @@
-language: python
-
-# http://docs.travis-ci.com/user/ci-environment/#CI-environment-OS
-before_install:
-  - travis_retry sudo ./bootstrap/ubuntu.sh
-  - travis_retry sudo apt-get install --no-install-recommends nginx-light openssl
-
-# using separate envs with different TOXENVs creates 4x1 Travis build
-# matrix, which allows us to clearly distinguish which component under
-# test has failed
-env:
-  global:
-    - GOPATH=/tmp/go
-  matrix:
-    - TOXENV=py26 BOULDER_INTEGRATION=1
-    - TOXENV=py27 BOULDER_INTEGRATION=1
-    - TOXENV=py33
-    - TOXENV=py34
-    - TOXENV=lint
-    - TOXENV=cover
-
-install: "travis_retry pip install tox coveralls"
-before_script: '[ "xxx$BOULDER_INTEGRATION" = "xxx" ] || ./tests/boulder-start.sh'
-script: 'travis_retry tox && ([ "xxx$BOULDER_INTEGRATION" = "xxx" ] || (source .tox/$TOXENV/bin/activate && ./tests/boulder-integration.sh))'
-
-after_success: '[ "$TOXENV" == "cover" ] && coveralls'
-
-notifications:
-  email: false
-  irc:
-    channels:
-      - "chat.freenode.net#letsencrypt"
-    on_success: never
-    on_failure: always
-    use_notice: true
-    skip_join: true
+language: objective-c
+osx_image: xcode7.1
+xcode_project: Device.xcodeproj
+xcode_scheme: Device_iOS
+xcode_sdk:  iphonesimulator9.1

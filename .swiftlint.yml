@@ -1,0 +1,20 @@
+opt_in_rules:
+ - empty_count
+ - force_unwrapping
+ - overridden_super_call
+ - redundant_nil_coalescing
+ - redundant_optional_initialization
+ - redundant_void_return
+ - sorted_imports
+ - object_literal
+
+disabled_rules:
+ - file_length
+ - line_length
+ - function_body_length
+ - type_body_length
+ - switch_case_alignment
+
+identifier_name:
+  excluded:
+    - tv
